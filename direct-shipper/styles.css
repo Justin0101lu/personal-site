@@ -53,7 +53,7 @@ button{font-family:inherit;font-size:inherit;cursor:pointer;border:none;backgrou
 /* ---------- marketing ---------- */
 .topbar{border-bottom:1px solid var(--rule);position:sticky;top:0;background:var(--paper);z-index:50}
 .topbar-in{max-width:1120px;margin:0 auto;padding:14px 24px;display:flex;align-items:center;gap:24px}
-.logo{display:flex;align-items:baseline;gap:8px;font-weight:600;font-size:19px;letter-spacing:-.02em}
+.logo{display:flex;align-items:baseline;gap:8px;font-weight:600;font-size:19px;letter-spacing:-.02em;white-space:nowrap}
 .logo b{width:9px;height:9px;background:var(--blue);border-radius:1px;display:inline-block}
 .topnav{margin-left:auto;display:flex;align-items:center;gap:20px;font-size:14px;color:var(--steel)}
 .btn{background:var(--blue);color:var(--paper);padding:9px 16px;border-radius:3px;font-weight:500;font-size:14px;transition:opacity .15s}
@@ -197,8 +197,72 @@ label{display:block;font-size:13px;color:var(--steel);margin-bottom:6px}
 .auth h2{font-size:26px;letter-spacing:-.02em;font-weight:600;margin-bottom:8px}
 .auth p{font-size:14.5px;color:var(--steel);margin-bottom:28px}
 
+/* ---------- outreach ---------- */
+.chans{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin-top:14px}
+.chan{border:1px solid var(--rule);border-radius:2px;padding:14px 16px;background:var(--sunk)}
+.chan-h{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.chan-h b{font-size:15px}
+.chan .cell-sub{text-align:left}
+.chan-from{font-family:var(--mono);font-size:12px;color:var(--faint);margin-top:4px;
+           overflow-wrap:anywhere}
+.seq{list-style:none;margin:14px 0 0;padding:0}
+.seq-step{display:flex;gap:16px;padding:12px 0;border-bottom:1px solid var(--rule)}
+.seq-step:last-child{border-bottom:none}
+.seq-when{flex:none;width:58px;font-family:var(--mono);font-size:12px;color:var(--faint);
+          padding-top:2px}
+.seq-body{flex:1;min-width:0}
+.seq-body b{font-size:14.5px}
+.seq-ch{font-family:var(--mono);font-size:11.5px;color:var(--blue);
+        border:1px solid var(--rule);border-radius:2px;padding:1px 6px;margin-left:6px;
+        white-space:nowrap}
+.chan-tabs{display:flex;gap:6px;margin:14px 0 10px;flex-wrap:wrap}
+.chan-tab{background:none;border:1px solid var(--rule);border-radius:2px;cursor:pointer;
+          font-family:var(--sans);font-size:13px;color:var(--steel);padding:7px 14px;
+          min-height:36px}
+.chan-tab.on{border-color:var(--blue);color:var(--blue);font-weight:500}
+.draft{background:var(--sunk);border:1px solid var(--rule);border-radius:2px;padding:16px;
+       font-size:14.5px;line-height:1.6;overflow-wrap:anywhere}
+.draft-sub{font-family:var(--mono);font-size:12px;color:var(--faint);padding-bottom:10px;
+           border-bottom:1px solid var(--rule);margin-bottom:12px;overflow-wrap:anywhere}
+
 /* ---------- mobile ---------- */
+@media (max-width:1000px){
+  /* nine tabs plus a balance stop fitting one row well before phone widths */
+  .appbar-in{height:auto;flex-wrap:wrap;padding:10px 16px 0;gap:10px;row-gap:0}
+  .bal{order:2}
+  .tabs{order:3;width:100%;margin:8px -16px 0;padding:0 16px;overflow-x:auto;
+        -webkit-overflow-scrolling:touch;scrollbar-width:none}
+  .tabs::-webkit-scrollbar{display:none}
+  .tab{padding:0 12px;height:44px;flex:none}
+  .chan-tab{min-height:44px}
+  .btn,.btn-ghost{min-height:44px}
+}
 @media (max-width:860px){
+  /* tables become stacked records */
+  table{border:none;background:transparent;display:block}
+  thead{display:none}
+  tbody,tr,td{display:block;width:100%}
+  tbody tr{background:var(--card);border:1px solid var(--rule);border-radius:2px;
+           margin-bottom:10px;padding:6px 0}
+  tbody tr:hover{background:var(--card)}
+  tbody tr:active{background:var(--sunk)}
+  td{border-bottom:1px solid var(--rule);padding:9px 15px;display:flex;
+     justify-content:space-between;align-items:baseline;gap:14px;text-align:right}
+  td:last-child{border-bottom:none}
+  td::before{content:attr(data-label);flex:none;color:var(--faint);font-size:12px;
+             text-align:left;font-family:var(--sans);font-weight:400}
+  td[data-label=""]::before{display:none}
+  td.lead{display:block;text-align:left;font-weight:500;font-size:16px;
+          padding-top:12px;padding-bottom:12px}
+  td.lead::before{display:none}
+  .cell-sub{text-align:right}
+  td.lead .cell-sub{text-align:left;font-weight:400}
+  .ratecard tbody tr{display:flex;justify-content:space-between;margin-bottom:0;
+                     border:none;border-bottom:1px solid var(--rule);border-radius:0;padding:0}
+  .ratecard td{border:none;padding:11px 2px;display:block;text-align:left;
+                flex:1;width:auto}
+  .ratecard td:last-child{text-align:right;flex:none}
+  .ratecard td::before{display:none}
   .demo{grid-template-columns:1fr;gap:14px}
   .chevron{padding:0;transform:rotate(90deg)}
   .steps,.split,.tiers{grid-template-columns:1fr}
@@ -226,38 +290,14 @@ label{display:block;font-size:13px;color:var(--steel);margin-bottom:6px}
   .auth{margin:44px auto}
 
   /* app chrome: two rows, tabs scroll */
-  .appbar-in{height:auto;flex-wrap:wrap;padding:10px 16px 0;gap:10px;row-gap:0}
   .appbar-in .logo{font-size:17px}
   .bal{gap:10px;font-size:12.5px;order:2}
   .bal>span:first-child{display:none}
   .bal .btn-ghost{padding:7px 12px;font-size:13px}
-  .tabs{order:3;width:100%;margin:8px -16px 0;padding:0 16px;overflow-x:auto;
-        -webkit-overflow-scrolling:touch;scrollbar-width:none}
-  .tabs::-webkit-scrollbar{display:none}
-  .tab{padding:0 12px;height:44px;flex:none}
   .pane-h{flex-direction:column;align-items:stretch;gap:14px}
   .pane-h>div:last-child{display:flex;gap:8px}
   .pane-h .btn-ghost{flex:1;text-align:center}
 
-  /* tables become stacked records */
-  table{border:none;background:transparent;display:block}
-  thead{display:none}
-  tbody,tr,td{display:block;width:100%}
-  tbody tr{background:var(--card);border:1px solid var(--rule);border-radius:2px;
-           margin-bottom:10px;padding:6px 0}
-  tbody tr:hover{background:var(--card)}
-  tbody tr:active{background:var(--sunk)}
-  td{border-bottom:1px solid var(--rule);padding:9px 15px;display:flex;
-     justify-content:space-between;align-items:baseline;gap:14px;text-align:right}
-  td:last-child{border-bottom:none}
-  td::before{content:attr(data-label);flex:none;color:var(--faint);font-size:12px;
-             text-align:left;font-family:var(--sans);font-weight:400}
-  td[data-label=""]::before{display:none}
-  td.lead{display:block;text-align:left;font-weight:500;font-size:16px;
-          padding-top:12px;padding-bottom:12px}
-  td.lead::before{display:none}
-  .cell-sub{text-align:right}
-  td.lead .cell-sub{text-align:left;font-weight:400}
 
   /* facility record */
   .row{flex-direction:row;gap:12px;align-items:baseline}
@@ -277,14 +317,13 @@ label{display:block;font-size:13px;color:var(--steel);margin-bottom:6px}
   .panel .btn-lg{width:100%}
   #dep-note{text-align:center;display:block;width:100%}
   input[type=text],input[type=email],input[type=password],select{font-size:16px;padding:13px}
-  .btn,.btn-ghost{min-height:44px}
   .flash{position:sticky;top:96px;z-index:30}
   .hide-sm{display:none}
-  .ratecard tbody tr{display:flex;justify-content:space-between;margin-bottom:0;
-                     border:none;border-bottom:1px solid var(--rule);border-radius:0;padding:0}
-  .ratecard td{border:none;padding:11px 2px;display:block;text-align:left;flex:1}
-  .ratecard td:last-child{text-align:right;flex:none}
-  .ratecard td::before{display:none}
+  .chans{grid-template-columns:1fr}
+  .seq-step{flex-direction:column;gap:2px}
+  .seq-when{width:auto}
+  .chan-tab{flex:1;min-height:44px}
+  .draft{padding:14px;font-size:14px}
 }
 @media (prefers-reduced-motion:reduce){
   *{transition:none!important;animation:none!important}

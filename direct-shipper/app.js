@@ -1,85 +1,6 @@
-/* ---------- state ---------- */
-var S = {balance:0, crm:null, reload:false, tier:1, log:[], unlocked:{}, prospectRun:false};
-var TIERS = [{amt:100,bonus:0},{amt:500,bonus:.10},{amt:2000,bonus:.20}];
-
-var LOADS = [
-  {id:'4471882',broker:'Midland Logistics LLC',mc:'884213',fac:'Lineage Ontario 4',addr:'4200 E Airport Dr, Ontario CA',shipper:'Sunrise Frozen Foods',lane:'Ontario CA → Phoenix AZ',eq:'Reefer',rate:'$2,850',status:'ok',f:0},
-  {id:'4471903',broker:'Coast Range Freight',mc:'712880',fac:'Americold Ontario',addr:'1801 S Milliken Ave, Ontario CA',shipper:'Unresolved',lane:'Ontario CA → Las Vegas NV',eq:'Reefer',rate:'$1,420',status:'unres',f:1},
-  {id:'4472011',broker:'Midland Logistics LLC',mc:'884213',fac:'Lineage Ontario 4',addr:'4200 E Airport Dr, Ontario CA',shipper:'Sunrise Frozen Foods',lane:'Ontario CA → Phoenix AZ',eq:'Reefer',rate:'$2,790',status:'ok',f:0},
-  {id:'4472044',broker:'Vantage Transport Svcs',mc:'1099421',fac:'Del Rio Produce DC',addr:'900 W Rincon St, Corona CA',shipper:'Del Rio Produce Co',lane:'Corona CA → Dallas TX',eq:'Reefer',rate:'$3,610',status:'ok',f:2},
-  {id:'4472090',broker:'Apex Freight Group',mc:'1288740',fac:'Lineage Ontario 4',addr:'4200 E Airport Dr, Ontario CA',shipper:'Sunrise Frozen Foods',lane:'Ontario CA → Denver CO',eq:'Reefer',rate:'$1,980',status:'flag',f:0},
-  {id:'4472117',broker:'Coast Range Freight',mc:'712880',fac:'Del Rio Produce DC',addr:'900 W Rincon St, Corona CA',shipper:'Del Rio Produce Co',lane:'Corona CA → Phoenix AZ',eq:'Reefer',rate:'$1,240',status:'ok',f:2}
-];
-
-var FACS = [
-  {name:'Lineage Ontario 4', addr:'4200 E Airport Dr, Ontario CA 91761', type:'3PL cold storage', shipper:'Sunrise Frozen Foods', mine:3, net:611, conf:96,
-   lanes:[['Phoenix AZ',21,'VERIFIED',117],['Las Vegas NV',14,'VERIFIED',81],['Dallas TX',11,'OBSERVED',52],['Denver CO',8,'INFERRED',19]],
-   vol:'41 loads/mo, flat', season:'Peak Aug–Nov', eq:'Reefer 91% · Dry 9%', comm:'Frozen food',
-   contact:'Javier Ruiz — Transportation Manager · j.ruiz@sunrisefrozen.com · (909) 555-0142',
-   paid:'$3,240 average, Ontario → Phoenix, last 90 days (n=64)'},
-  {name:'Del Rio Produce DC', addr:'900 W Rincon St, Corona CA 92880', type:'Shipper-owned DC', shipper:'Del Rio Produce Co', mine:2, net:188, conf:88,
-   lanes:[['Phoenix AZ',26,'VERIFIED',49],['Dallas TX',18,'OBSERVED',34],['Salt Lake City UT',9,'INFERRED',11]],
-   vol:'16 loads/mo, rising', season:'Peak May–Sep', eq:'Reefer 100%', comm:'Fresh produce',
-   contact:'Marisol Vega — Logistics Director · m.vega@delrioproduce.com · (951) 555-0188',
-   paid:'$1,610 average, Corona → Phoenix, last 90 days (n=27)'},
-  {name:'Americold Ontario', addr:'1801 S Milliken Ave, Ontario CA 91761', type:'3PL cold storage', shipper:'Unresolved — 14 shippers seen', mine:1, net:97, conf:41,
-   lanes:[['Las Vegas NV',19,'OBSERVED',22],['Phoenix AZ',12,'INFERRED',9]],
-   vol:'Not enough independent observations', season:'Unknown', eq:'Reefer 88% · Dry 12%', comm:'Mixed frozen',
-   contact:null, paid:null}
-];
-
-var RECEIVERS = [
-  {n:'SW Distribution Center', c:'Phoenix AZ', mine:64, out:'Yes — 31/mo observed',
-   lanes:'Phoenix → Ontario CA 34% · Tucson AZ 19%', eq:'Reefer 88%', st:'clear',
-   note:'You deliver here weekly. Ships reefer back toward your home base.',
-   contact:'Dana Whitfield — Inbound & Outbound Manager'},
-  {n:'Cactus Cold Storage', c:'Tolleson AZ', mine:22, out:'Yes — 47/mo observed',
-   lanes:'Tolleson → Los Angeles 28% · Denver CO 14%', eq:'Reefer 96%', st:'clear',
-   note:'3PL serving 12 shippers. Outbound is awarded at the facility, not by a broker.',
-   contact:'Luis Ferrara — Transportation Coordinator'},
-  {n:'Desert Valley Foods DC', c:'Glendale AZ', mine:18, out:'Yes — 19/mo observed',
-   lanes:'Glendale → Corona CA 41%', eq:'Reefer 100%', st:'clear',
-   note:'Their outbound mirrors your best paying lane in reverse.',
-   contact:'Priya Anand — Logistics Manager'},
-  {n:'Lone Star Grocery DC', c:'Dallas TX', mine:18, out:'Yes — 26/mo observed',
-   lanes:'Dallas → Corona CA 22% · Houston TX 17%', eq:'Reefer 79% · Dry 21%', st:'clear',
-   note:'You deadhead out of Dallas 48% of the time. They ship toward Corona.',
-   contact:'Marcus Bell — Director of Transportation'},
-  {n:'Summit Beverage Whse', c:'Denver CO', mine:12, out:'Limited — 6/mo observed',
-   lanes:'Denver → Salt Lake City UT 38%', eq:'Dry 71%', st:'thin',
-   note:'Small outbound volume and mostly dry van. Worth a call, not a plan.',
-   contact:null},
-  {n:'Valley Retail RDC', c:'Las Vegas NV', mine:41, out:'No outbound observed',
-   lanes:'—', eq:'—', st:'none',
-   note:'Pure receiving location. Inbound only in everything we have seen.',
-   contact:null}
-];
-
-var DORMANT = [
-  {b:'Coast Range Freight', last:'Feb 2024', auth:'Revoked Aug 2024', term:'18 mo, survives termination',
-   ship:3, st:'clear', note:'Entity dissolved with CA SOS. Term elapsed Aug 2025.'},
-  {b:'Trident Transport Mgmt', last:'Nov 2023', auth:'Inactive', term:'Not on file',
-   ship:2, st:'unknown', note:'No signed agreement found. Upload it to date the clock.'},
-  {b:'Harbor Point Logistics', last:'Jun 2024', auth:'Revoked Jan 2025', term:'12 mo from last shipment',
-   ship:4, st:'clear', note:'Term elapsed Jun 2025.'},
-  {b:'Apex Freight Group', last:'Mar 2025', auth:'Active', term:'24 mo from last shipment',
-   ship:1, st:'running', note:'Runs to Mar 2027. Broker still operating.'},
-  {b:'Sierra Lane Brokerage', last:'Aug 2025', auth:'Active', term:'24 mo from last shipment',
-   ship:2, st:'running', note:'Runs to Aug 2027.'},
-  {b:'Midland Logistics LLC', last:'This month', auth:'Active', term:'24 mo from last shipment',
-   ship:1, st:'hold', note:'Current relationship. Excluded from lookalikes.'}
-];
-
-var PROSPECTS = [
-  ['Sunrise Frozen Foods','Ontario CA','41/mo','VERIFIED'],
-  ['Del Rio Produce Co','Corona CA','16/mo','VERIFIED'],
-  ['Valley Cold Pack','Fontana CA','28/mo','VERIFIED'],
-  ['Harborline Foods','Vernon CA','22/mo','OBSERVED'],
-  ['Sierra Dairy Group','Chino CA','19/mo','OBSERVED'],
-  ['Pacific Meat Co','Vernon CA','14/mo','OBSERVED'],
-  ['Inland Beverage','Riverside CA','12/mo','OBSERVED'],
-  ['Redlands Citrus Co','Redlands CA','11/mo','INFERRED']
-];
+/* ---------- state ----------
+   Fixtures live in data.js. This file is behavior only. */
+var S = {balance:0, crm:null, reload:false, tier:1, log:[], unlocked:{}, prospectRun:false, draftCh:'email'};
 
 /* ---------- nav ---------- */
 function go(v){
@@ -122,7 +43,7 @@ function tab(p){
   window.scrollTo(0,0);
 }
 function copyAddr(){
-  if(navigator.clipboard) navigator.clipboard.writeText('loads-8f2a41@waybill.co');
+  if(navigator.clipboard) navigator.clipboard.writeText('loads-8f2a41@directshipper.co');
   var h=document.getElementById('fwd-hint');
   if(h) h.textContent='Copied. Now add the Gmail or Outlook filter and you are done.';
 }
@@ -183,7 +104,7 @@ function openFac(i){
   var h='<div class="pane-h"><div><h2>'+f.name+'</h2><p>'+f.addr+'</p></div>'+
     '<span class="tag '+(f.conf>80?'t-ver':'t-inf')+'">'+f.conf+'% CONFIDENCE</span></div>';
 
-  h+='<div class="panel"><h3>What Waybill knows for free</h3><dl>'+
+  h+='<div class="panel"><h3>What Direct Shipper knows for free</h3><dl>'+
     '<div class="row"><dt>Facility type</dt><dd>'+f.type+'</dd></div>'+
     '<div class="row"><dt>Shipper</dt><dd>'+f.shipper+'</dd></div>'+
     '<div class="row"><dt>Your loads through here</dt><dd>'+f.mine+'</dd></div>'+
@@ -193,7 +114,7 @@ function openFac(i){
 
   h+='<div class="grid2"><div class="panel"><h3>Observed lanes</h3>';
   if(f.conf<50){
-    h+='<p class="ph" style="margin:0">Not enough independent carriers have moved freight through this dock to publish lanes. Waybill will not guess.</p>';
+    h+='<p class="ph" style="margin:0">Not enough independent carriers have moved freight through this dock to publish lanes. Direct Shipper will not guess.</p>';
   } else if(u.lanes){
     h+='<div class="bars">'+f.lanes.map(function(l){
       var cls=l[2]==='VERIFIED'?'t-ver':(l[2]==='OBSERVED'?'t-obs':'t-inf');
@@ -258,9 +179,10 @@ function renderLog(){
   var b=document.getElementById('log-body');
   if(!S.log.length){b.innerHTML='<tr style="cursor:default"><td colspan="4" style="color:var(--faint)">Nothing charged yet.</td></tr>';return}
   b.innerHTML=S.log.map(function(e){
-    return '<tr style="cursor:default"><td class="log">'+e.t+'</td><td>'+e.w+'</td>'+
-      '<td style="text-align:right" class="num">'+(e.c===0?'$0.00':'−'+money(e.c))+'</td>'+
-      '<td style="text-align:right" class="num">'+money(e.b)+'</td></tr>';
+    return '<tr style="cursor:default"><td class="log" data-label="When">'+e.t+'</td>'+
+      '<td data-label="What">'+e.w+'</td>'+
+      '<td style="text-align:right" class="num" data-label="Charge">'+(e.c===0?'$0.00':'−'+money(e.c))+'</td>'+
+      '<td style="text-align:right" class="num" data-label="Balance after">'+money(e.b)+'</td></tr>';
   }).join('');
 }
 function renderTiers(){
@@ -393,8 +315,105 @@ function pushCrm(n,what){
   flashMsg(n+' '+what+' pushed to '+S.crm+' with their freight profiles attached.');
 }
 
+/* ---------- outreach ----------
+   Everything below reads CHANNELS / SEQUENCE / DRAFTS / OUTREACH.
+   Nothing here names a channel. */
+function chan(id){
+  for(var i=0;i<CHANNELS.length;i++) if(CHANNELS[i].id===id) return CHANNELS[i];
+  return null;
+}
+function esc(t){
+  return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function connectChan(id){
+  var c=chan(id);
+  if(!c) return;
+  c.connected=true;
+  renderOutreach();
+  flashMsg(c.label+' connected. Touches on that channel go out as '+c.from+'.');
+}
+function renderChans(){
+  var b=document.getElementById('chan-list');
+  if(!b) return;
+  b.innerHTML = CHANNELS.map(function(c){
+    var act = c.connected
+      ? '<span class="tag t-ver">CONNECTED</span>'
+      : '<button class="btn-ghost" style="padding:5px 10px;font-size:13px" onclick="connectChan(\''+c.id+'\')">Connect</button>';
+    var lim = c.limit ? '<div class="cell-sub">'+c.limit+' character limit</div>' : '';
+    return '<div class="chan">'+
+      '<div class="chan-h"><b>'+c.label+'</b>'+act+'</div>'+
+      '<div class="chan-from">'+c.from+'</div>'+
+      '<p class="ph" style="margin:8px 0 0">'+c.note+'</p>'+lim+'</div>';
+  }).join('');
+}
+function renderSeq(){
+  var b=document.getElementById('seq-list');
+  if(!b) return;
+  b.innerHTML = SEQUENCE.map(function(s){
+    var c=chan(s.ch);
+    var when = s.day===0 ? 'Day 0' : 'Day '+s.day;
+    var warn = c.connected ? '' :
+      ' <span class="tag t-flag">'+c.label.toUpperCase()+' NOT CONNECTED</span>';
+    return '<li class="seq-step">'+
+      '<div class="seq-when">'+when+'</div>'+
+      '<div class="seq-body"><b>'+s.name+'</b> <span class="seq-ch">'+c.label+'</span>'+warn+
+      '<p class="ph" style="margin:4px 0 0">'+s.why+'</p></div></li>';
+  }).join('');
+}
+function setDraftCh(id){ S.draftCh=id; renderDraft(); }
+function renderDraft(){
+  var tabs=document.getElementById('draft-tabs');
+  var box=document.getElementById('draft-box');
+  var hint=document.getElementById('draft-hint');
+  if(!tabs||!box) return;
+  var used={};
+  SEQUENCE.forEach(function(s){used[s.ch]=true});
+  var ids=CHANNELS.filter(function(c){return used[c.id]}).map(function(c){return c.id});
+  if(ids.indexOf(S.draftCh)<0) S.draftCh=ids[0];
+
+  tabs.innerHTML = ids.map(function(id){
+    var c=chan(id);
+    return '<button class="chan-tab'+(id===S.draftCh?' on':'')+'" onclick="setDraftCh(\''+id+'\')">'+
+      c.label+'</button>';
+  }).join('');
+
+  var c=chan(S.draftCh), d=DRAFTS[S.draftCh];
+  if(!d){ box.innerHTML='<p class="hint">No draft written for '+c.label+' yet.</p>'; return; }
+  var head = c.subject && d.subject
+    ? '<div class="draft-sub">Subject: '+esc(d.subject)+'</div>'
+    : '<div class="draft-sub">'+esc(c.from)+' — '+c.label+'</div>';
+  box.innerHTML = '<div class="draft">'+head+esc(d.body).replace(/\n/g,'<br>')+'</div>';
+
+  if(hint){
+    var over = c.limit && d.body.length > c.limit;
+    var count = c.limit ? d.body.length+' of '+c.limit+' characters. ' : '';
+    hint.innerHTML = (over?'<span style="color:var(--red)">'+count+'Too long — trim before sending.</span> ':count)+
+      'Every later touch stops the moment they reply.';
+  }
+}
+function qTag(st){
+  if(st==='ready')     return '<span class="tag t-ver">DRAFT READY</span>';
+  if(st==='sent')      return '<span class="tag t-obs">SENT · 3d ago</span>';
+  if(st==='blocked')   return '<span class="tag t-flag">CHANNEL NOT CONNECTED</span>';
+  return '<span class="tag t-inf">NEEDS CONTACT</span>';
+}
+function renderQueue(){
+  var b=document.getElementById('queue-body');
+  if(!b) return;
+  b.innerHTML = OUTREACH.map(function(o){
+    var c=chan(o.ch);
+    var st = (o.st==='ready' && !c.connected) ? 'blocked' : o.st;
+    return '<tr style="cursor:default">'+
+      '<td class="lead">'+o.n+'<div class="cell-sub">'+o.who+'</div></td>'+
+      '<td data-label="Why">'+o.why+'</td>'+
+      '<td data-label="Next touch">'+o.step+'<div class="cell-sub">'+c.label+'</div></td>'+
+      '<td data-label="Status">'+qTag(st)+'</td></tr>';
+  }).join('');
+}
+function renderOutreach(){ renderChans(); renderSeq(); renderDraft(); renderQueue(); }
+
 function renderAll(){
   document.getElementById('bal').textContent=money(S.balance);
-  renderLoads(); renderFacs(); renderTiers(); renderLog(); renderReact(); renderRecv();
+  renderLoads(); renderFacs(); renderTiers(); renderLog(); renderReact(); renderRecv(); renderOutreach();
 }
 renderTiers();
