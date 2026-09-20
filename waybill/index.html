@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Waybill — who actually ships the freight you haul</title>
+<meta name="description" content="Waybill reads your rate confirmations, builds a freight profile from what you actually haul, and starts with the receivers you already deliver to. A prototype.">
+<link rel="icon" href="../favicon.ico">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- ============ LANDING ============ -->
+<div class="view on" id="v-landing">
+  <div class="topbar"><div class="topbar-in">
+    <div class="logo"><b></b>Waybill</div>
+    <nav class="topnav">
+      <a href="#how">How it works</a>
+      <a href="#pricing">Pricing</a>
+      <button class="btn-ghost" onclick="go('signin')">Sign in</button>
+      <button class="btn" onclick="go('signup')">Start free</button>
+    </nav>
+  </div></div>
+
+  <div class="hero"><div class="wrap">
+    <h1>You know your trucks. Do you know your freight?</h1>
+    <p class="lede">Send Waybill your old rate confirmations. It reads them, analyzes what you actually haul, and starts with the warmest freight you have: the receivers you already back into every week, who ship outbound too.</p>
+    <div class="hero-cta">
+      <button class="btn btn-lg" onclick="go('signup')">Upload your rate cons</button>
+      <button class="btn-ghost btn-lg" onclick="go('signup')">See how it works</button>
+    </div>
+    <p class="hero-note">Free to parse and profile. No card to start.</p>
+
+    <div class="demo">
+      <div class="doc">
+        <div class="doc-h">RATE CONFIRMATION — as received</div>
+        LOAD #<em>4471882</em><br>
+        BROKER <em>MIDLAND LOGISTICS LLC</em><br>
+        MC <em>884213</em><br><br>
+        PICKUP<br>
+        <span class="hl">LINEAGE — ONTARIO 4</span><br>
+        <span class="hl">4200 E AIRPORT DR</span><br>
+        ONTARIO CA 91761<br><br>
+        DELIVERY<br>
+        SW DISTRIBUTION CTR<br>
+        PHOENIX AZ 85043<br><br>
+        EQUIP <em>REEFER 53</em> · TEMP <em>-10F</em><br>
+        WT <em>41,200</em> · RATE <em>$2,850.00</em>
+      </div>
+
+      <div class="chevron">&#8594;</div>
+
+      <div class="rec">
+        <div class="rec-h">
+          <div>
+            <h3>Sunrise Frozen Foods</h3>
+            <p>Ships through Lineage Ontario 4 &middot; 3PL cold storage</p>
+          </div>
+          <span class="tag t-ver">VERIFIED</span>
+        </div>
+        <div class="rec-body">
+          <dl>
+            <div class="row"><dt>Facility type</dt><dd>3PL, not shipper-owned</dd></div>
+            <div class="row"><dt>Observed loads / mo</dt><dd>41</dd></div>
+            <div class="row"><dt>Equipment</dt><dd>Reefer 91% &middot; Dry 9%</dd></div>
+            <div class="row"><dt>Ontario &rarr; Phoenix</dt><dd>117 observed</dd></div>
+            <div class="row"><dt>Transportation manager</dt><dd>J. Ruiz &middot; verified</dd></div>
+            <div class="row"><dt>Broker authority</dt><dd>Active &middot; bond current</dd></div>
+          </dl>
+        </div>
+      </div>
+    </div>
+  </div></div>
+
+  <div class="strip"><div class="strip-in">
+    <span><i class="dot"></i>Works with any TMS — or none</span>
+    <span><i class="dot"></i>Export to Sheets, CSV, or webhook</span>
+    <span><i class="dot"></i>Your rates never shown to anyone</span>
+  </div></div>
+
+  <div class="sect" id="how"><div class="wrap">
+    <h2>Set it up once and stop typing loads</h2>
+    <p class="sub">Most carriers rekey the same rate con into a spreadsheet and a TMS. Point your broker email at Waybill and it stops.</p>
+    <div class="steps">
+      <div class="step">
+        <div class="n">Step 1</div>
+        <h4>Send us your old rate cons</h4>
+        <p>Forward your broker email or drop in a folder of PDFs going back as far as you have. Every one becomes a structured load — shipper, facility, lane, equipment, commodity, rate. Nothing to rekey.</p>
+      </div>
+      <div class="step">
+        <div class="n">Step 2</div>
+        <h4>Find out what you actually haul</h4>
+        <p>Most carriers can't say what their top commodity is, which lanes pay best, or which ones they run empty out of. Waybill reads your history and tells you. That's your freight profile, and it's free.</p>
+      </div>
+      <div class="step">
+        <div class="n">Step 3</div>
+        <h4>Start with the docks you already back into</h4>
+        <p>You deliver to these receivers every week. They ship outbound too, and no broker put you in the room — you got there on your own. Waybill shows what each one ships and who runs their transportation.</p>
+      </div>
+    </div>
+    <div class="trust" style="margin-top:32px">
+      <h4>Three ways to grow, warmest first</h4>
+      <p>Waybill never surfaces a shipper as a target because you hauled it for a broker you still work with. Instead it works outward from what you already have. <b>Receivers</b> — the docks you deliver to weekly, who ship outbound themselves, and where you already have a face and a badge. <b>Dormant relationships</b> — old brokers, with last load date, authority status and your own agreement's clause, so you can see which holds have run their term. <b>Lookalikes</b> — facilities moving freight like yours where you have no relationship at all. On the middle one, Waybill shows dates and documents, never legal conclusions; whether you're clear is a question for your attorney.</p>
+    </div>
+  </div></div>
+
+  <div class="sect" id="pricing"><div class="wrap">
+    <h2>Free to know what you hauled. Paid to know what to go get.</h2>
+    <p class="sub">No seats and no subscription. Put money on your balance and spend it per answer. Nothing is charged when Waybill has no answer for you.</p>
+    <div class="split">
+      <div class="col">
+        <h4>Free, always <span class="tag t-ver">NO CARD</span></h4>
+        <p class="price">Unlimited</p>
+        <ul>
+          <li><b>Rate con parsing and load creation</b></li>
+          <li><b>Email forwarding and inbox sync</b></li>
+          <li><b>Shipper and facility identification</b></li>
+          <li><b>Facility type</b> <span class="amt">3PL or owned</span></li>
+          <li><b>Broker authority and bond check</b></li>
+          <li><b>Double-brokering flags</b></li>
+          <li><b>Export</b> <span class="amt">Sheets, CSV, API</span></li>
+        </ul>
+      </div>
+      <div class="col paid">
+        <h4>Pay as you go</h4>
+        <p class="price">Prepaid balance, billed per record</p>
+        <ul>
+          <li><b>Observed lanes at a facility</b> <span class="amt">$1.50</span></li>
+          <li><b>Monthly volume and seasonality</b> <span class="amt">$1.00</span></li>
+          <li><b>Verified contact</b> <span class="amt">$2.50</span></li>
+          <li><b>What the shipper paid</b> <span class="amt">$2.00</span></li>
+          <li><b>Find similar facilities</b> <span class="amt">$0.50 each</span></li>
+          <li><b>Complete facility record</b> <span class="amt">$5.00</span></li>
+          <li><b>API and MCP access</b> <span class="amt">same rates</span></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="trust">
+      <h4>What happens to your data</h4>
+      <p>Waybill keeps what you forward and counts it toward what the industry can see in aggregate. Your rate, your broker, and your company are never shown to another customer, and nothing about a facility is published until enough unrelated carriers have moved freight through it that no single load can be traced back. You can delete everything you've sent, any time.</p>
+    </div>
+  </div></div>
+
+  <footer><div class="wrap">
+    Waybill &middot; A prototype. Not a live product.
+  </div></footer>
+</div>
+
+<!-- ============ SIGN UP ============ -->
+<div class="view" id="v-signup">
+  <div class="topbar"><div class="topbar-in">
+    <div class="logo" onclick="go('landing')" style="cursor:pointer"><b></b>Waybill</div>
+  </div></div>
+  <div class="auth">
+    <h2>Create your account</h2>
+    <p>You'll get a forwarding address on the next screen.</p>
+    <div class="formrow">
+      <label for="su-co">Company name</label>
+      <input type="text" id="su-co" placeholder="Ruiz Trucking LLC">
+    </div>
+    <div class="formrow">
+      <label for="su-em">Work email</label>
+      <input type="email" id="su-em" placeholder="you@company.com">
+    </div>
+    <div class="formrow">
+      <label for="su-mc">MC number <span style="color:var(--faint)">(optional)</span></label>
+      <input type="text" id="su-mc" placeholder="884213">
+      <p class="hint">Used to pre-check your own authority. Skip it if you'd rather not.</p>
+    </div>
+    <p class="err" id="su-err">Enter a company name and email to continue.</p>
+    <button class="btn btn-lg" style="width:100%;margin-top:8px" onclick="doSignup()">Create account</button>
+    <p class="hint" style="text-align:center;margin-top:16px">Already set up? <a href="#" onclick="go('signin');return false" style="color:var(--blue)">Sign in</a></p>
+  </div>
+</div>
+
+<!-- ============ SIGN IN ============ -->
+<div class="view" id="v-signin">
+  <div class="topbar"><div class="topbar-in">
+    <div class="logo" onclick="go('landing')" style="cursor:pointer"><b></b>Waybill</div>
+  </div></div>
+  <div class="auth">
+    <h2>Sign in</h2>
+    <p>Prototype — any email gets you in.</p>
+    <div class="formrow">
+      <label for="si-em">Email</label>
+      <input type="email" id="si-em" placeholder="you@company.com">
+    </div>
+    <div class="formrow">
+      <label for="si-pw">Password</label>
+      <input type="password" id="si-pw" placeholder="••••••••">
+    </div>
+    <button class="btn btn-lg" style="width:100%;margin-top:8px" onclick="enterApp('loads')">Sign in</button>
+  </div>
+</div>
+
+<!-- ============ ONBOARD ============ -->
+<div class="view" id="v-onboard">
+  <div class="topbar"><div class="topbar-in">
+    <div class="logo"><b></b>Waybill</div>
+    <nav class="topnav"><span style="font-size:13px">Step 2 of 2</span></nav>
+  </div></div>
+  <div class="wrap narrow" style="padding-top:56px;padding-bottom:80px">
+    <h2 style="font-size:26px;letter-spacing:-.02em;font-weight:600">Where should your rate cons come from?</h2>
+    <p style="color:var(--steel);margin-top:10px;margin-bottom:28px">Pick one now, add the others later. Most carriers start with forwarding.</p>
+
+    <div class="panel">
+      <h3>Forward your broker email <span class="tag t-ver" style="margin-left:6px">FASTEST</span></h3>
+      <p class="ph">Every rate con sent to this address is parsed within a minute. Set one filter in Gmail or Outlook and you never touch it again.</p>
+      <div class="field">
+        <div class="copybox" id="fwd-addr">loads-8f2a41@waybill.co</div>
+        <button class="btn-ghost" onclick="copyAddr()">Copy</button>
+      </div>
+      <p class="hint" id="fwd-hint">In Gmail: Settings &rarr; Filters &rarr; Create filter &rarr; from broker domains &rarr; Forward to this address. We'll walk you through it.</p>
+      <button class="btn" style="margin-top:16px" onclick="finishOnboard('fwd')">I've set up forwarding</button>
+    </div>
+
+    <div class="panel">
+      <h3>Connect Gmail or Outlook directly</h3>
+      <p class="ph">Waybill reads only messages that look like rate confirmations, and digs as far back as your mailbox goes — not just 24 months. That deep scan is how it finds brokers you folded with or walked away from years ago, and the shippers behind them. Read-only. Revoke any time.</p>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn-ghost" onclick="finishOnboard('gmail')">Connect Gmail</button>
+        <button class="btn-ghost" onclick="finishOnboard('outlook')">Connect Outlook</button>
+      </div>
+      <p class="hint">This is the one to pick. Old mail is where the dormant relationships are, and those are the shippers you may already be clear to call.</p>
+    </div>
+
+    <div class="panel">
+      <h3>Upload a file</h3>
+      <p class="ph">Drop in PDFs or a folder of scans. Good for testing before you connect anything.</p>
+      <button class="btn-ghost" onclick="finishOnboard('upload')">Choose files</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ APP ============ -->
+<div class="view" id="v-app">
+  <div class="appbar"><div class="appbar-in">
+    <div class="logo"><b></b>Waybill</div>
+    <nav class="tabs">
+      <button class="tab on" data-p="loads" onclick="tab('loads')">Loads</button>
+      <button class="tab" data-p="profile" onclick="tab('profile')">My freight</button>
+      <button class="tab" data-p="receivers" onclick="tab('receivers')">Receivers</button>
+      <button class="tab" data-p="reactivate" onclick="tab('reactivate')">Reactivate</button>
+      <button class="tab" data-p="prospect" onclick="tab('prospect')">Lookalikes</button>
+      <button class="tab" data-p="outreach" onclick="tab('outreach')">Outreach</button>
+      <button class="tab" data-p="facilities" onclick="tab('facilities')">Facilities</button>
+      <button class="tab" data-p="sources" onclick="tab('sources')">Sources</button>
+      <button class="tab" data-p="billing" onclick="tab('billing')">Billing</button>
+    </nav>
+    <div class="bal">
+      <span style="color:var(--steel)">Balance</span>
+      <span class="bal-amt" id="bal">$0.00</span>
+      <button class="btn-ghost" onclick="tab('billing')">Add funds</button>
+    </div>
+  </div></div>
+
+  <div class="appwrap">
+    <div class="flash" id="flash"></div>
+
+    <!-- LOADS -->
+    <div class="pane on" id="p-loads">
+      <div class="pane-h">
+        <div>
+          <h2>Loads</h2>
+          <p id="loads-sub">Parsed from your forwarded email</p>
+        </div>
+        <div style="display:flex;gap:10px">
+          <button class="btn-ghost" onclick="flashMsg('Exported 6 loads to Google Sheets.')">Export to Sheets</button>
+          <button class="btn-ghost" onclick="simulate()">Simulate new email</button>
+        </div>
+      </div>
+      <table>
+        <thead><tr>
+          <th>Pickup facility</th><th>Shipper</th><th>Broker</th><th>Lane</th><th>Equip</th><th>Rate</th><th>Load</th><th>Status</th>
+        </tr></thead>
+        <tbody id="loads-body"></tbody>
+      </table>
+      <p class="hint" style="margin-top:12px">Click any row to open the facility record.</p>
+    </div>
+
+    <!-- MY FREIGHT -->
+    <div class="pane" id="p-profile">
+      <div class="pane-h">
+        <div>
+          <h2>My freight</h2>
+          <p>What Waybill learned from 214 rate cons, Mar 2025 to today</p>
+        </div>
+        <div style="display:flex;gap:10px">
+          <button class="btn-ghost" onclick="tab('prospect')">Find lookalikes</button>
+        </div>
+      </div>
+
+      <div class="panel" style="border-left:3px solid var(--blue)">
+        <h3>What you haul</h3>
+        <p class="ph">Most carriers guess at this. Here's what your own paperwork says.</p>
+        <div class="grid2">
+          <div>
+            <div class="bars">
+              <div class="bar"><span class="lbl">Frozen &amp; refrigerated food</span><span class="track"><span class="fill" style="width:61%"></span></span><span class="v">61%</span></div>
+              <div class="bar"><span class="lbl">Fresh produce</span><span class="track"><span class="fill" style="width:22%"></span></span><span class="v">22%</span></div>
+              <div class="bar"><span class="lbl">Beverage</span><span class="track"><span class="fill" style="width:11%"></span></span><span class="v">11%</span></div>
+              <div class="bar"><span class="lbl">Other / unclassified</span><span class="track"><span class="fill" style="width:6%"></span></span><span class="v">6%</span></div>
+            </div>
+          </div>
+          <div>
+            <dl>
+              <div class="row"><dt>Equipment</dt><dd>Reefer 94% · Dry 6%</dd></div>
+              <div class="row"><dt>Average length of haul</dt><dd>412 mi</dd></div>
+              <div class="row"><dt>Average rate per mile</dt><dd>$2.41</dd></div>
+              <div class="row"><dt>Busiest month</dt><dd>October</dd></div>
+              <div class="row"><dt>Loads analyzed</dt><dd>214</dd></div>
+            </dl>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div class="panel">
+          <h3>Your lanes, by what they actually pay</h3>
+          <p class="ph">Ranked by rate per mile, not by how often you run them.</p>
+          <table style="border:none">
+            <thead><tr><th>Lane</th><th style="text-align:right">Loads</th><th style="text-align:right">$/mi</th></tr></thead>
+            <tbody>
+              <tr style="cursor:default"><td class="lead">Corona CA → Dallas TX</td><td data-label="Loads" class="num" style="text-align:right">18</td><td data-label="$/mi" class="num" style="text-align:right">$2.88</td></tr>
+              <tr style="cursor:default"><td class="lead">Ontario CA → Phoenix AZ</td><td data-label="Loads" class="num" style="text-align:right">64</td><td data-label="$/mi" class="num" style="text-align:right">$2.62</td></tr>
+              <tr style="cursor:default"><td class="lead">Ontario CA → Las Vegas NV</td><td data-label="Loads" class="num" style="text-align:right">41</td><td data-label="$/mi" class="num" style="text-align:right">$2.19</td></tr>
+              <tr style="cursor:default"><td class="lead">Corona CA → Phoenix AZ</td><td data-label="Loads" class="num" style="text-align:right">29</td><td data-label="$/mi" class="num" style="text-align:right">$1.94</td></tr>
+              <tr style="cursor:default"><td class="lead">Ontario CA → Denver CO</td><td data-label="Loads" class="num" style="text-align:right">12</td><td data-label="$/mi" class="num" style="text-align:right">$1.71</td></tr>
+            </tbody>
+          </table>
+          <p class="hint">Your highest-volume lane is your third best paying. Worth knowing before you renew anything.</p>
+        </div>
+        <div class="panel">
+          <h3>Where you're running empty</h3>
+          <p class="ph">Deliveries with no loaded return within 48 hours.</p>
+          <div class="bars">
+            <div class="bar"><span class="lbl">Denver CO</span><span class="track"><span class="fill" style="width:74%;background:var(--red)"></span></span><span class="v">74%</span></div>
+            <div class="bar"><span class="lbl">Dallas TX</span><span class="track"><span class="fill" style="width:48%;background:var(--red)"></span></span><span class="v">48%</span></div>
+            <div class="bar"><span class="lbl">Phoenix AZ</span><span class="track"><span class="fill" style="width:21%"></span></span><span class="v">21%</span></div>
+            <div class="bar"><span class="lbl">Las Vegas NV</span><span class="track"><span class="fill" style="width:12%"></span></span><span class="v">12%</span></div>
+          </div>
+          <p class="hint" style="margin-top:14px">Three quarters of your Denver runs come back empty. Waybill can look for reefer shippers outbound from Denver that match your profile.</p>
+          <button class="btn" style="margin-top:12px" onclick="tab('prospect')">Find Denver outbound</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>Add more history</h3>
+        <p class="ph">This profile rests on 214 loads. The further back you go, the better the lookalike matching gets — seasonality especially needs a couple of years.</p>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <button class="btn-ghost" onclick="connectMail()">Connect inbox for a full-mailbox scan</button>
+          <button class="btn-ghost" onclick="flashMsg('Drop a folder of PDFs to add older loads.')">Upload old rate cons</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- FACILITIES -->
+    <div class="pane" id="p-facilities">
+      <div class="pane-h">
+        <div>
+          <h2>Facilities</h2>
+          <p>Docks your freight has touched, resolved and typed</p>
+        </div>
+      </div>
+      <table>
+        <thead><tr>
+          <th>Facility</th><th>Type</th><th>Shipper</th><th>Your loads</th><th>Network loads</th><th>Confidence</th>
+        </tr></thead>
+        <tbody id="fac-body"></tbody>
+      </table>
+    </div>
+
+    <!-- FACILITY DETAIL -->
+    <div class="pane" id="p-detail">
+      <a class="back" href="#" onclick="tab('facilities');return false">&larr; All facilities</a>
+      <div id="detail-body"></div>
+    </div>
+
+    <!-- PROSPECT -->
+    <div class="pane" id="p-prospect">
+      <div class="pane-h">
+        <div>
+          <h2>Lookalikes</h2>
+          <p>Facilities moving freight like yours, that you have no relationship with</p>
+        </div>
+      </div>
+      <div class="panel" style="border-left:3px solid var(--blue)">
+        <h3>Matched against your freight profile</h3>
+        <p class="ph">Waybill starts from what you already haul — reefer food, 400-mile hauls out of the Inland Empire — and looks for facilities that ship the same kind of freight. Anything you've hauled for a broker is excluded, and so is anything that broker moves.</p>
+      </div>
+      <div class="panel">
+        <div class="grid2">
+          <div>
+            <div class="formrow">
+              <label for="pr-o">Origin</label>
+              <input type="text" id="pr-o" value="Ontario, CA">
+            </div>
+            <div class="formrow">
+              <label for="pr-d">Destination</label>
+              <input type="text" id="pr-d" value="Phoenix, AZ">
+            </div>
+          </div>
+          <div>
+            <div class="formrow">
+              <label for="pr-e">Equipment</label>
+              <select id="pr-e"><option>Reefer</option><option>Dry van</option><option>Flatbed</option></select>
+            </div>
+            <div class="formrow">
+              <label for="pr-m">Minimum loads per month</label>
+              <input type="text" id="pr-m" value="10">
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:4px">
+          <button class="btn" onclick="estimate()">Estimate cost</button>
+          <button class="btn-ghost" onclick="runSearch()">Run search</button>
+          <span class="hint" id="pr-est" style="margin:0"></span>
+        </div>
+        <p class="err" id="pr-err">Not enough balance for this search. Add funds in Billing.</p>
+      </div>
+      <div id="pr-results"></div>
+    </div>
+
+    <!-- RECEIVERS -->
+    <div class="pane" id="p-receivers">
+      <div class="pane-h">
+        <div>
+          <h2>Receivers</h2>
+          <p>Docks you already deliver to — and what they ship outbound</p>
+        </div>
+      </div>
+
+      <div class="panel" style="border-left:3px solid var(--green)">
+        <h3>The warmest freight you have</h3>
+        <p class="ph" style="margin:0">You back into these docks every week. Their receiving manager knows your trucks, and no broker put you in that relationship — you earned it on the delivery side. Most of them also ship outbound, and that freight has nothing to do with the broker who tendered you the inbound load. <b>Start here before you cold-call anyone.</b></p>
+      </div>
+
+      <table>
+        <thead><tr>
+          <th>Receiver</th><th>Your deliveries</th><th>Ships outbound</th><th>Their lanes</th><th>Equip</th><th>Standing</th><th></th>
+        </tr></thead>
+        <tbody id="recv-body"></tbody>
+      </table>
+
+      <div class="grid2" style="margin-top:20px">
+        <div class="panel">
+          <h3>Why this works</h3>
+          <p class="ph" style="margin:0">A broker's non-solicit covers the broker's customer — the shipper who tendered the load. The consignee on the delivery end is usually not that customer, and their outbound freight is their own to award. You're also the only carrier in the conversation who can say "I'm at your dock Thursday anyway." Still read your own agreement: a few are written broadly enough to reach consignees too, and Waybill flags those.</p>
+        </div>
+        <div class="panel">
+          <h3>Next time you're there</h3>
+          <p class="ph">Waybill can put the receiving contact and what they ship on your driver's delivery paperwork, so the conversation happens at the dock instead of over email.</p>
+          <button class="btn" onclick="flashMsg('Contact and outbound summary will print on delivery paperwork.')">Add to delivery packets</button>
+          <button class="btn-ghost" style="margin-top:8px" onclick="pushCrm(6,'receivers')">Push all to CRM</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- REACTIVATE -->
+    <div class="pane" id="p-reactivate">
+      <div class="pane-h">
+        <div>
+          <h2>Reactivate</h2>
+          <p>Brokers you no longer work with, and where their shippers stand</p>
+        </div>
+        <div style="display:flex;gap:10px">
+          <button class="btn-ghost" onclick="flashMsg('Scanning back to 2021. This usually turns up brokers you have forgotten about.')">Scan further back</button>
+        </div>
+      </div>
+
+      <div class="panel" style="border-left:3px solid var(--blue)">
+        <h3>What this screen is and isn't</h3>
+        <p class="ph" style="margin:0">Waybill found 9 brokers in your email you haven't hauled for in over a year, including 3 whose operating authority is no longer active. It shows you the last load date, the broker's FMCSA status, and the non-solicit language from the agreement you signed with them. <b>It does not tell you whether you're legally clear.</b> Terms vary, some survive a broker shutting down, and some are assigned to whoever buys the book. Read the clause, then ask your attorney.</p>
+      </div>
+
+      <table>
+        <thead><tr>
+          <th>Broker</th><th>Last load</th><th>Authority</th><th>Your term</th><th>Shippers</th><th>Status</th><th></th>
+        </tr></thead>
+        <tbody id="react-body"></tbody>
+      </table>
+
+      <div class="grid2" style="margin-top:20px">
+        <div class="panel">
+          <h3>Upload your carrier packets</h3>
+          <p class="ph">The non-solicit term isn't on the rate con — it's in the broker-carrier agreement you signed. Upload those and Waybill pulls out the clause, the term length, and whether it survives termination, then dates the clock from your last load.</p>
+          <button class="btn" onclick="flashMsg('Drop your signed broker-carrier agreements here.')">Upload agreements</button>
+          <p class="hint">4 of your 9 dormant brokers have no agreement on file, so their term shows as unknown.</p>
+        </div>
+        <div class="panel">
+          <h3>Watch list</h3>
+          <p class="ph">Waybill emails you the month a term runs out, so a relationship you could reopen doesn't sit forgotten for another two years.</p>
+          <dl>
+            <div class="row"><dt>Apex Freight Group</dt><dd>clear in 4 mo</dd></div>
+            <div class="row"><dt>Sierra Lane Brokerage</dt><dd>clear in 11 mo</dd></div>
+            <div class="row"><dt>Trident Transport Mgmt</dt><dd>term unknown</dd></div>
+          </dl>
+          <button class="btn-ghost" style="margin-top:14px" onclick="flashMsg('You will get an email the month each term runs out.')">Notify me</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- OUTREACH -->
+    <div class="pane" id="p-outreach">
+      <div class="pane-h">
+        <div>
+          <h2>Outreach</h2>
+          <p>Drafted from your own freight history, sent from your domain</p>
+        </div>
+        <div style="display:flex;gap:10px">
+          <button class="btn-ghost" onclick="flashMsg('Connect the mailbox you want these sent from.')">Connect sending mailbox</button>
+        </div>
+      </div>
+
+      <div class="panel" style="border-left:3px solid var(--green)">
+        <h3>Nothing sends without you</h3>
+        <p class="ph" style="margin:0">Every draft waits for your approval. It goes out from your address, replies come to your inbox, and Waybill never appears in the thread. Unlimited sends on any paid plan &mdash; no per-seat fee and no per-mailbox fee.</p>
+      </div>
+
+      <div class="panel">
+        <h3>SW Distribution Center &mdash; Dana Whitfield <span class="tag t-ver" style="margin-left:6px">READY</span></h3>
+        <p class="ph">You deliver here 64 times a year. They ship outbound toward Ontario, which is your empty return.</p>
+        <div style="background:var(--sunk);border:1px solid var(--rule);border-radius:2px;padding:16px;font-size:14.5px;line-height:1.6">
+          <div style="font-family:var(--mono);font-size:12px;color:var(--faint);padding-bottom:10px;border-bottom:1px solid var(--rule);margin-bottom:12px">
+            Subject: Your Ontario outbound &mdash; we&rsquo;re at your dock Thursdays
+          </div>
+          Dana,<br><br>
+          We run about 64 loads a year into your Phoenix DC, so our drivers are on your dock most Thursdays.<br><br>
+          I noticed you also ship outbound toward Ontario. That&rsquo;s our home lane and we&rsquo;re usually running back empty, which means we can price it better than someone repositioning to get there.<br><br>
+          Worth a short call? I can send our insurance and authority ahead of time.<br><br>
+          &mdash; Justin
+        </div>
+        <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap">
+          <button class="btn" onclick="flashMsg('Sent from your mailbox. Two follow-ups scheduled, 4 and 11 days out.')">Approve &amp; send</button>
+          <button class="btn-ghost" onclick="flashMsg('Draft opened for editing.')">Edit</button>
+          <button class="btn-ghost" onclick="flashMsg('Rewritten with a shorter opener.')">Rewrite shorter</button>
+        </div>
+        <p class="hint">Two follow-ups queued automatically, 4 and 11 days out. Both stop the moment they reply.</p>
+      </div>
+
+      <div class="panel">
+        <h3>Queue</h3>
+        <table style="border:none">
+          <thead><tr><th>Who</th><th>Why they should care</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr style="cursor:default"><td class="lead">Cactus Cold Storage<div class="cell-sub">Luis Ferrara</div></td><td data-label="Why">22 deliveries &middot; ships 47/mo toward LA</td><td data-label="Status"><span class="tag t-ver">DRAFT READY</span></td></tr>
+            <tr style="cursor:default"><td class="lead">Lone Star Grocery DC<div class="cell-sub">Marcus Bell</div></td><td data-label="Why">18 deliveries &middot; fills your 48% Dallas deadhead</td><td data-label="Status"><span class="tag t-ver">DRAFT READY</span></td></tr>
+            <tr style="cursor:default"><td class="lead">Desert Valley Foods DC<div class="cell-sub">Priya Anand</div></td><td data-label="Why">18 deliveries &middot; outbound mirrors your best lane</td><td data-label="Status"><span class="tag t-obs">SENT &middot; 3d ago</span></td></tr>
+            <tr style="cursor:default"><td class="lead">Harbor Point shippers<div class="cell-sub">3 contacts</div></td><td data-label="Why">Dormant broker &middot; term elapsed Jun 2025</td><td data-label="Status"><span class="tag t-inf">NEEDS CONTACT</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- SOURCES -->
+    <div class="pane" id="p-sources">
+      <div class="pane-h">
+        <div>
+          <h2>Sources</h2>
+          <p>Where your loads come in from</p>
+        </div>
+      </div>
+      <div class="panel">
+        <h3>Forwarding address</h3>
+        <p class="ph">Active. 6 rate cons received in the last 7 days.</p>
+        <div class="field">
+          <div class="copybox">loads-8f2a41@waybill.co</div>
+          <button class="btn-ghost" onclick="copyAddr()">Copy</button>
+        </div>
+      </div>
+      <div class="panel">
+        <h3>Gmail</h3>
+        <p class="ph">Not connected. Connecting lets Waybill dig back through your whole mailbox — that is where forgotten broker relationships and their shippers turn up.</p>
+        <button class="btn" onclick="connectMail()">Connect Gmail</button>
+        <p class="hint">Read-only, limited to messages that look like rate confirmations.</p>
+      </div>
+      <div class="panel">
+        <h3>CRM</h3>
+        <p class="ph">Push receivers, dormant shippers and lookalikes straight into the CRM your sales side already works in. Waybill creates the company and the contact, attaches the freight profile, and keeps it current as new rate cons come in.</p>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <button class="btn" onclick="crmConnect('HubSpot')">Connect HubSpot</button>
+          <button class="btn-ghost" onclick="crmConnect('Salesforce')">Connect Salesforce</button>
+          <button class="btn-ghost" onclick="flashMsg('Tell us which CRM you run and we will look at it.')">Other</button>
+        </div>
+        <p class="hint">Two-way: if someone on your team marks a company Closed Won in the CRM, Waybill stops surfacing it as an opportunity.</p>
+      </div>
+
+      <div class="panel" id="crm-map" style="display:none">
+        <h3>What lands on the record</h3>
+        <p class="ph">Waybill writes to custom properties so nothing collides with what your team already uses.</p>
+        <table style="border:none">
+          <thead><tr><th>Waybill field</th><th>CRM property</th></tr></thead>
+          <tbody>
+            <tr style="cursor:default"><td class="lead">Facility address</td><td data-label="CRM property" class="num">company.address</td></tr>
+            <tr style="cursor:default"><td class="lead">Facility type (3PL / owned)</td><td data-label="CRM property" class="num">wb_facility_type</td></tr>
+            <tr style="cursor:default"><td class="lead">Your deliveries to date</td><td data-label="CRM property" class="num">wb_deliveries_count</td></tr>
+            <tr style="cursor:default"><td class="lead">Observed loads / month</td><td data-label="CRM property" class="num">wb_monthly_loads</td></tr>
+            <tr style="cursor:default"><td class="lead">Top outbound lanes</td><td data-label="CRM property" class="num">wb_lanes</td></tr>
+            <tr style="cursor:default"><td class="lead">Equipment mix</td><td data-label="CRM property" class="num">wb_equipment</td></tr>
+            <tr style="cursor:default"><td class="lead">Confidence &amp; sample size</td><td data-label="CRM property" class="num">wb_confidence</td></tr>
+            <tr style="cursor:default"><td class="lead">Source (receiver / dormant / lookalike)</td><td data-label="CRM property" class="num">wb_source</td></tr>
+            <tr style="cursor:default"><td class="lead">Transportation contact</td><td data-label="CRM property" class="num">contact record</td></tr>
+          </tbody>
+        </table>
+        <p class="hint">Rates, broker names and anything from your own loads stay in Waybill. Only the facility-level profile is written out.</p>
+      </div>
+
+      <div class="panel">
+        <h3>TMS</h3>
+        <p class="ph">Pull load history straight from your TMS instead of parsing documents. Cleaner and complete.</p>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <button class="btn-ghost" onclick="flashMsg('We will email you when this integration is ready.')">McLeod</button>
+          <button class="btn-ghost" onclick="flashMsg('We will email you when this integration is ready.')">Turvo</button>
+          <button class="btn-ghost" onclick="flashMsg('We will email you when this integration is ready.')">Truckpedia</button>
+          <button class="btn-ghost" onclick="flashMsg('We will email you when this integration is ready.')">Other</button>
+        </div>
+      </div>
+      <div class="panel">
+        <h3>Your data</h3>
+        <p class="ph">214 loads analyzed. Your rates and broker names are never shown to another customer, and Waybill never surfaces a shipper to anyone because you hauled it for their broker. Delete everything and we stop counting your freight toward aggregate figures.</p>
+        <button class="btn-ghost" onclick="flashMsg('Nothing deleted — this is a prototype.')">Delete my data</button>
+      </div>
+    </div>
+
+    <!-- BILLING -->
+    <div class="pane" id="p-billing">
+      <div class="pane-h">
+        <div>
+          <h2>Billing</h2>
+          <p>Prepaid balance. Spend it per record, no subscription.</p>
+        </div>
+      </div>
+      <div class="panel">
+        <h3>Add funds</h3>
+        <p class="ph">Deposit more and the bonus credit is applied immediately.</p>
+        <div class="tiers" id="tiers"></div>
+        <div class="toggle" onclick="toggleReload()">
+          <span class="sw" id="sw-reload"><i></i></span>
+          <span>Reload $100 automatically when my balance falls below $25</span>
+        </div>
+        <div style="margin-top:20px;display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+          <button class="btn btn-lg" onclick="deposit()">Add funds</button>
+          <span class="hint" id="dep-note" style="margin:0"></span>
+        </div>
+      </div>
+      <div class="panel">
+        <h3>Spending cap</h3>
+        <p class="ph">A hard ceiling so a bad script or a big search can't drain your balance.</p>
+        <div style="max-width:220px"><label for="cap">Maximum per day</label><input type="text" id="cap" value="$50.00"></div>
+      </div>
+      <div class="panel">
+        <h3>Rate card</h3>
+        <table class="ratecard" style="border:none">
+          <thead><tr><th>Record</th><th style="text-align:right">Charge</th></tr></thead>
+          <tbody>
+            <tr style="cursor:default"><td>Rate con parsing, load creation, export</td><td style="text-align:right" class="num">Free</td></tr>
+            <tr style="cursor:default"><td>Shipper and facility identification</td><td style="text-align:right" class="num">Free</td></tr>
+            <tr style="cursor:default"><td>Broker authority and double-brokering check</td><td style="text-align:right" class="num">Free</td></tr>
+            <tr style="cursor:default"><td>Observed lanes at a facility</td><td style="text-align:right" class="num">$1.50</td></tr>
+            <tr style="cursor:default"><td>Monthly volume and seasonality</td><td style="text-align:right" class="num">$1.00</td></tr>
+            <tr style="cursor:default"><td>Verified contact</td><td style="text-align:right" class="num">$2.50</td></tr>
+            <tr style="cursor:default"><td>What the shipper paid on a lane</td><td style="text-align:right" class="num">$2.00</td></tr>
+            <tr style="cursor:default"><td>Prospecting result</td><td style="text-align:right" class="num">$0.50</td></tr>
+            <tr style="cursor:default"><td>No result found</td><td style="text-align:right" class="num">$0.00</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="panel">
+        <h3>Usage</h3>
+        <table class="ratecard" style="border:none">
+          <thead><tr><th>When</th><th>What</th><th style="text-align:right">Charge</th><th style="text-align:right">Balance after</th></tr></thead>
+          <tbody id="log-body"><tr style="cursor:default"><td colspan="4" style="color:var(--faint)">Nothing charged yet.</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
