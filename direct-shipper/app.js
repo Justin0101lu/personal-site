@@ -1,7 +1,8 @@
 /* ---------- state ----------
    Fixtures live in data.js. This file is behavior only. */
 var S = {plan:'free', tokens:20, packs:0, crm:null, cap:25,
-         log:[], unlocked:{}, prospectRun:false, draftCh:'email'};
+         log:[], unlocked:{}, prospectRun:false, draftCh:'email',
+         lq:'', lst:'all', leq:'all', lsort:'date', ldir:-1, lshow:50};
 
 /* ---------- nav ---------- */
 function go(v){
@@ -60,6 +61,20 @@ function connectMail(){
   tab('loads');
 }
 function simulate(){
+  var l=LOADS[Math.floor(Math.random()*LOADS.length)];
+  var now=new Date();
+  LOADS.unshift({
+    id:String(Number(LOADS[0].id)+7), ts:now.getTime(),
+    date:['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][now.getMonth()]+
+         ' '+now.getDate()+' '+now.getFullYear(),
+    broker:'Coast Range Freight', mc:'712880',
+    fac:'Del Rio Produce DC', addr:'900 W Rincon St, Corona CA',
+    shipper:'Del Rio Produce Co', lane:'Corona CA → Phoenix AZ', dest:'Phoenix AZ', miles:389,
+    eq:'Reefer', rate:'$1,240', rateN:1240, perMi:'3.19', status:'ok', f:1
+  });
+  S.lq=''; S.lst='all'; S.leq='all'; S.lsort='date'; S.ldir=-1; S.lshow=50;
+  var q=document.getElementById('lv-q'); if(q) q.value='';
+  renderLoads();
   flashMsg('New rate con from Coast Range Freight parsed. Facility resolved to Del Rio Produce DC.');
   tab('loads');
 }
@@ -101,18 +116,92 @@ function tagFor(s){
   if(s==='flag') return '<span class="tag t-flag">RATE LOW</span>';
   return '<span class="tag t-inf">UNRESOLVED</span>';
 }
+/* ---------- loads: list view ----------
+   Filter, then sort, then render only the window the user has scrolled to.
+   1,184 rows in memory, 50 in the DOM. */
+var LV_COLS = [
+  {k:'date',    label:'Date',     cls:'lv-date'},
+  {k:'fac',     label:'Facility', cls:'lv-fac'},
+  {k:'shipper', label:'Shipper',  cls:'lv-shipper'},
+  {k:'broker',  label:'Broker',   cls:'lv-broker'},
+  {k:'lane',    label:'Lane',     cls:'lv-lane'},
+  {k:'eq',      label:'Equip',    cls:'lv-eq'},
+  {k:'rate',    label:'Rate',     cls:'lv-rate'},
+  {k:'status',  label:'Status',   cls:'lv-status'}
+];
+function loadRows(){
+  var q=S.lq.toLowerCase().trim();
+  var rows=LOADS.filter(function(l){
+    if(S.lst!=='all' && l.status!==S.lst) return false;
+    if(S.leq!=='all' && l.eq!==S.leq) return false;
+    if(!q) return true;
+    return (l.fac+' '+l.shipper+' '+l.broker+' '+l.lane+' '+l.id+' '+l.mc).toLowerCase().indexOf(q)>-1;
+  });
+  var k=S.lsort, dir=S.ldir;
+  rows.sort(function(a,b){
+    var x,y;
+    if(k==='date'){x=a.ts; y=b.ts;}
+    else if(k==='rate'){x=a.rateN; y=b.rateN;}
+    else {x=String(a[k]).toLowerCase(); y=String(b[k]).toLowerCase();}
+    return (x<y?-1:x>y?1:0)*dir;
+  });
+  return rows;
+}
+function sortLoads(k){
+  if(S.lsort===k) S.ldir=-S.ldir;
+  else { S.lsort=k; S.ldir = (k==='date'||k==='rate') ? -1 : 1; }
+  S.lshow=50;
+  renderLoads();
+}
+function filterLoads(what,v){
+  if(what==='q') S.lq=v; else if(what==='st') S.lst=v; else S.leq=v;
+  S.lshow=50;
+  renderLoads();
+}
+function moreLoads(){ S.lshow+=100; renderLoads(); }
 function renderLoads(){
-  document.getElementById('loads-body').innerHTML = LOADS.map(function(l){
-    return '<tr onclick="openFac('+l.f+')">'+
-      '<td class="lead">'+l.fac+'<div class="cell-sub">'+l.addr+'</div></td>'+
-      '<td data-label="Shipper">'+(l.shipper==='Unresolved'?'<span style="color:var(--faint)">Unresolved</span>':l.shipper)+'</td>'+
-      '<td data-label="Broker">'+l.broker+'<div class="cell-sub">MC '+l.mc+'</div></td>'+
-      '<td data-label="Lane">'+l.lane+'</td>'+
-      '<td data-label="Equipment">'+l.eq+'</td>'+
-      '<td data-label="Rate" class="num">'+l.rate+'</td>'+
-      '<td data-label="Load" class="num">'+l.id+'</td>'+
-      '<td data-label="">'+tagFor(l.status)+'</td></tr>';
+  var head=document.getElementById('lv-head');
+  if(!head) return;
+  head.innerHTML = LV_COLS.map(function(c){
+    var on = S.lsort===c.k;
+    return '<div class="lv-h" onclick="sortLoads(\''+c.k+'\')">'+c.label+
+      (on?'<i>'+(S.ldir>0?'↑':'↓')+'</i>':'')+'</div>';
   }).join('');
+
+  var rows=loadRows();
+  var shown=rows.slice(0,S.lshow);
+  var body=document.getElementById('lv-body');
+  body.innerHTML = shown.length ? shown.map(function(l){
+    return '<div class="lv-row lv-cols" onclick="openFac('+l.f+')">'+
+      '<div class="lv-c lv-date">'+l.date+'</div>'+
+      '<div class="lv-c lv-fac">'+l.fac+'</div>'+
+      '<div class="lv-c lv-shipper'+(l.shipper==='Unresolved'?' lv-dim':'')+'">'+l.shipper+'</div>'+
+      '<div class="lv-c lv-broker lv-dim">'+l.broker+'</div>'+
+      '<div class="lv-c lv-lane">'+l.lane+'</div>'+
+      '<div class="lv-c lv-eq lv-dim">'+l.eq+'</div>'+
+      '<div class="lv-c lv-rate">'+l.rate+'</div>'+
+      '<div class="lv-c lv-status">'+tagFor(l.status)+'</div></div>';
+  }).join('')
+  : '<div class="lv-empty">No loads match that. Clear the search or the filters.</div>';
+
+  var more=document.getElementById('lv-more');
+  var left=rows.length-shown.length;
+  more.innerHTML = left>0
+    ? '<button class="btn-ghost" onclick="moreLoads()">Load '+Math.min(100,left)+
+      ' more · '+left.toLocaleString()+' left</button>'
+    : '';
+
+  var cnt=document.getElementById('lv-count');
+  cnt.textContent = rows.length===LOADS.length
+    ? LOADS.length.toLocaleString()+' loads · '+shown.length+' shown'
+    : rows.length.toLocaleString()+' of '+LOADS.length.toLocaleString()+' · '+shown.length+' shown';
+}
+function exportLoads(){
+  if(!planOf().export){
+    flashMsg('Export is on Carrier and Fleet. Your loads stay yours either way.');
+    tab('billing'); return;
+  }
+  flashMsg('Exported '+loadRows().length.toLocaleString()+' loads to Google Sheets. No tokens charged.');
 }
 function renderFacs(){
   document.getElementById('fac-body').innerHTML = FACS.map(function(f,i){

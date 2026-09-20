@@ -508,20 +508,36 @@
       <div class="pane-h">
         <div>
           <h2>Loads</h2>
-          <p id="loads-sub">Parsed from your forwarded email</p>
+          <p id="loads-sub">Every rate con we have read, newest first</p>
         </div>
         <div style="display:flex;gap:10px">
-          <button class="btn-ghost" onclick="flashMsg('Exported 6 loads to Google Sheets.')">Export to Sheets</button>
+          <button class="btn-ghost" onclick="exportLoads()">Export</button>
           <button class="btn-ghost" onclick="simulate()">Simulate new email</button>
         </div>
       </div>
-      <table>
-        <thead><tr>
-          <th>Pickup facility</th><th>Shipper</th><th>Broker</th><th>Lane</th><th>Equip</th><th>Rate</th><th>Load</th><th>Status</th>
-        </tr></thead>
-        <tbody id="loads-body"></tbody>
-      </table>
-      <p class="hint" style="margin-top:12px">Click any row to open the facility record.</p>
+
+      <div class="lv">
+        <div class="lv-tools">
+          <input class="lv-search" id="lv-q" type="text" placeholder="Search facility, shipper, broker, lane or load number"
+                 oninput="filterLoads('q',this.value)">
+          <select onchange="filterLoads('st',this.value)" aria-label="Filter by status">
+            <option value="all">All statuses</option>
+            <option value="ok">Resolved</option>
+            <option value="unres">Unresolved</option>
+            <option value="flag">Rate low</option>
+          </select>
+          <select onchange="filterLoads('eq',this.value)" aria-label="Filter by equipment">
+            <option value="all">All equipment</option>
+            <option value="Reefer">Reefer</option>
+            <option value="Dry van">Dry van</option>
+          </select>
+          <span class="lv-count" id="lv-count"></span>
+        </div>
+        <div class="lv-head lv-cols" id="lv-head"></div>
+        <div id="lv-body"></div>
+        <div class="lv-more" id="lv-more"></div>
+      </div>
+      <p class="hint" style="margin-top:12px">Click any row to open the facility record. Sort by any column.</p>
     </div>
 
     <!-- MY FREIGHT -->

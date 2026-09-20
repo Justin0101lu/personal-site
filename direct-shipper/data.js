@@ -3,14 +3,70 @@
    hardcodes a row, a step or a channel. */
 
 
-var LOADS = [
-  {id:'4471882',broker:'Midland Logistics LLC',mc:'884213',fac:'Lineage Ontario 4',addr:'4200 E Airport Dr, Ontario CA',shipper:'Sunrise Frozen Foods',lane:'Ontario CA → Phoenix AZ',eq:'Reefer',rate:'$2,850',status:'ok',f:0},
-  {id:'4471903',broker:'Coast Range Freight',mc:'712880',fac:'Americold Ontario',addr:'1801 S Milliken Ave, Ontario CA',shipper:'Unresolved',lane:'Ontario CA → Las Vegas NV',eq:'Reefer',rate:'$1,420',status:'unres',f:1},
-  {id:'4472011',broker:'Midland Logistics LLC',mc:'884213',fac:'Lineage Ontario 4',addr:'4200 E Airport Dr, Ontario CA',shipper:'Sunrise Frozen Foods',lane:'Ontario CA → Phoenix AZ',eq:'Reefer',rate:'$2,790',status:'ok',f:0},
-  {id:'4472044',broker:'Vantage Transport Svcs',mc:'1099421',fac:'Del Rio Produce DC',addr:'900 W Rincon St, Corona CA',shipper:'Del Rio Produce Co',lane:'Corona CA → Dallas TX',eq:'Reefer',rate:'$3,610',status:'ok',f:2},
-  {id:'4472090',broker:'Apex Freight Group',mc:'1288740',fac:'Lineage Ontario 4',addr:'4200 E Airport Dr, Ontario CA',shipper:'Sunrise Frozen Foods',lane:'Ontario CA → Denver CO',eq:'Reefer',rate:'$1,980',status:'flag',f:0},
-  {id:'4472117',broker:'Coast Range Freight',mc:'712880',fac:'Del Rio Produce DC',addr:'900 W Rincon St, Corona CA',shipper:'Del Rio Produce Co',lane:'Corona CA → Phoenix AZ',eq:'Reefer',rate:'$1,240',status:'ok',f:2}
-];
+/* Loads are generated rather than listed: a real carrier brings thousands,
+   and the list view has to behave like it. Seeded so every reload is
+   identical. Pickups map onto FACS by index so a row still opens its
+   facility record. */
+var LOADS = (function(){
+  var seed = 20210104;
+  function rnd(){ seed=(seed*1664525+1013904223)%4294967296; return seed/4294967296; }
+  function pick(a){ return a[Math.floor(rnd()*a.length)]; }
+
+  var PICKUPS = [
+    {f:0, fac:'Lineage Ontario 4',  addr:'4200 E Airport Dr, Ontario CA',  shipper:'Sunrise Frozen Foods', w:52},
+    {f:1, fac:'Del Rio Produce DC', addr:'900 W Rincon St, Corona CA',     shipper:'Del Rio Produce Co',   w:31},
+    {f:2, fac:'Americold Ontario',  addr:'1801 S Milliken Ave, Ontario CA', shipper:null,                  w:17}
+  ];
+  var DESTS = [
+    ['Phoenix AZ',389],['Las Vegas NV',230],['Dallas TX',1440],['Denver CO',1020],
+    ['Salt Lake City UT',710],['Tucson AZ',480],['Albuquerque NM',790],['Reno NV',520],
+    ['El Paso TX',720],['Portland OR',960]
+  ];
+  var BROKERS = [
+    ['Midland Logistics LLC','884213'],['Coast Range Freight','712880'],
+    ['Vantage Transport Svcs','1099421'],['Apex Freight Group','1288740'],
+    ['Sierra Lane Brokerage','940112'],['Harbor Point Logistics','1014557'],
+    ['Trident Transport Mgmt','867340'],['Cross Basin Carriers','1322908']
+  ];
+  var MONTH = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+  /* weighted pickup so the freight profile stays lopsided, like a real one */
+  var bag=[];
+  PICKUPS.forEach(function(p,i){ for(var n=0;n<p.w;n++) bag.push(i); });
+
+  var out=[], id=4400000;
+  var start=Date.UTC(2021,0,4), end=Date.UTC(2026,8,20);
+  for(var i=0;i<1184;i++){
+    var p   = PICKUPS[pick(bag)];
+    var dst = DESTS[Math.floor(Math.pow(rnd(),1.7)*DESTS.length)];
+    var br  = BROKERS[Math.floor(Math.pow(rnd(),1.4)*BROKERS.length)];
+    var t   = new Date(start + rnd()*(end-start));
+    var reefer = rnd() > 0.06;
+    var perMi  = 1.55 + rnd()*1.6;
+    var rate   = Math.round(dst[1]*perMi/10)*10;
+    var origin = p.addr.indexOf('Corona')>-1 ? 'Corona CA' : 'Ontario CA';
+    var st = 'ok';
+    if(!p.shipper && rnd()<0.62) st='unres';
+    else if(perMi < 1.78) st='flag';
+    out.push({
+      id:String(id+=Math.floor(rnd()*90)+7),
+      ts:t.getTime(),
+      date:MONTH[t.getUTCMonth()]+' '+t.getUTCDate()+' '+t.getUTCFullYear(),
+      broker:br[0], mc:br[1],
+      fac:p.fac, addr:p.addr,
+      shipper:p.shipper||'Unresolved',
+      lane:origin+' \u2192 '+dst[0],
+      dest:dst[0], miles:dst[1],
+      eq: reefer?'Reefer':'Dry van',
+      rate:'$'+rate.toLocaleString(),
+      rateN:rate,
+      perMi:(Math.round(perMi*100)/100).toFixed(2),
+      status:st, f:p.f
+    });
+  }
+  out.sort(function(a,b){ return b.ts-a.ts; });
+  return out;
+})();
 
 var FACS = [
   {name:'Lineage Ontario 4', addr:'4200 E Airport Dr, Ontario CA 91761', type:'3PL cold storage', shipper:'Sunrise Frozen Foods', mine:3, net:611, conf:96,

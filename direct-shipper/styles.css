@@ -124,12 +124,14 @@ footer{padding:40px 0 64px;font-size:13px;color:var(--faint)}
 /* ---------- app ---------- */
 .appbar{border-bottom:1px solid var(--rule);background:var(--card);position:sticky;top:0;z-index:40}
 .appbar-in{max-width:1240px;margin:0 auto;padding:0 20px;display:flex;align-items:center;gap:28px;height:56px}
-.tabs{display:flex;gap:2px;margin-left:16px;height:100%}
-.tab{padding:0 14px;font-size:14px;color:var(--steel);border-bottom:2px solid transparent;display:flex;align-items:center}
+.tabs{display:flex;gap:2px;margin-left:16px;height:100%;min-width:0;overflow-x:auto;
+      scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{padding:0 14px;font-size:14px;white-space:nowrap;color:var(--steel);border-bottom:2px solid transparent;display:flex;align-items:center}
 .tab.on{color:var(--ink);border-bottom-color:var(--blue);font-weight:500}
 .tab:hover{color:var(--ink)}
-.bal{margin-left:auto;display:flex;align-items:center;gap:14px;font-size:13px}
-.bal-amt{font-family:var(--mono);font-weight:500;font-size:14px}
+.bal{margin-left:auto;flex:none;display:flex;align-items:center;gap:14px;font-size:13px}
+.bal-amt{font-family:var(--mono);font-weight:500;font-size:14px;white-space:nowrap}
 .appwrap{max-width:1240px;margin:0 auto;padding:28px 20px 80px}
 .pane{display:none}
 .pane.on{display:block}
@@ -309,6 +311,35 @@ label{display:block;font-size:13px;color:var(--steel);margin-bottom:6px}
 .cta-end .g{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
 footer{padding:36px 0 60px;font-size:13px;color:var(--faint)}
 
+/* ---------- loads list view ----------
+   Dense, sortable, windowed. Columns are declared once and shared by the
+   header and every row so they stay locked together. */
+.lv{border:1px solid var(--rule);border-radius:2px;background:var(--card);overflow:hidden}
+.lv-tools{display:flex;gap:8px;align-items:center;padding:8px;border-bottom:1px solid var(--rule);flex-wrap:wrap}
+.lv-tools .lv-search{flex:1 1 200px;width:auto;max-width:420px;min-height:0;
+           font-size:13.5px;padding:7px 10px;border:1px solid var(--rule);
+           border-radius:2px;background:var(--paper);color:var(--ink);font-family:var(--sans)}
+.lv-tools select{width:auto;flex:0 0 auto;min-height:0;font-size:13px;padding:7px 8px;
+                 border:1px solid var(--rule);border-radius:2px;
+                 background:var(--paper);color:var(--ink);font-family:var(--sans)}
+.lv-count{margin-left:auto;font-family:var(--mono);font-size:12px;color:var(--faint);white-space:nowrap}
+.lv-cols{display:grid;grid-template-columns:104px 1.5fr 1.2fr 1.2fr 1.4fr 84px 92px 110px;align-items:center}
+.lv-head{border-bottom:1px solid var(--rule);background:var(--sunk);position:sticky;top:0;z-index:2}
+.lv-h{font-size:11px;letter-spacing:.04em;color:var(--faint);padding:8px 10px;text-align:left;
+      cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:500}
+.lv-h:hover{color:var(--ink)}
+.lv-h i{font-style:normal;font-family:var(--mono);margin-left:4px}
+.lv-row{border-bottom:1px solid var(--rule);cursor:pointer}
+.lv-row:last-child{border-bottom:none}
+.lv-row:hover{background:var(--sunk)}
+.lv-c{padding:8px 10px;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lv-fac{font-weight:500}
+.lv-date,.lv-rate,.lv-id{font-family:var(--mono);font-size:12.5px;font-variant-numeric:tabular-nums}
+.lv-rate{text-align:right}
+.lv-dim{color:var(--steel)}
+.lv-more{padding:12px;text-align:center;border-top:1px solid var(--rule)}
+.lv-empty{padding:34px 16px;text-align:center;color:var(--faint);font-size:14px}
+
 /* ---------- mobile ---------- */
 @media (max-width:1000px){
   .srcgrid,.plans{grid-template-columns:repeat(2,1fr)}
@@ -322,6 +353,7 @@ footer{padding:36px 0 60px;font-size:13px;color:var(--faint)}
   .chan-tab{min-height:44px}
   .btn,.btn-ghost{min-height:44px}
   input[type=text],input[type=email],input[type=password],select{min-height:44px}
+  .lv-tools .lv-search,.lv-tools select{min-height:44px}
 }
 @media (max-width:860px){
   .fall,.vs{grid-template-columns:1fr}
@@ -405,6 +437,21 @@ footer{padding:36px 0 60px;font-size:13px;color:var(--faint)}
   input[type=text],input[type=email],input[type=password],select{font-size:16px;padding:13px}
   .flash{position:sticky;top:96px;z-index:30}
   .hide-sm{display:none}
+  .lv-head.lv-cols{display:none}
+  .lv-row.lv-cols{display:grid;grid-template-columns:1fr auto;column-gap:10px;row-gap:2px;
+                  padding:11px 12px}
+  .lv-c{padding:0;white-space:normal}
+  .lv-fac{grid-column:1;grid-row:1;font-size:15px}
+  .lv-status{grid-column:2;grid-row:1;justify-self:end}
+  .lv-shipper{grid-column:1/-1;grid-row:2;font-size:13px;color:var(--steel)}
+  .lv-lane{grid-column:1/-1;grid-row:3;font-size:13px}
+  .lv-date{grid-column:1;grid-row:4;font-size:12px;color:var(--faint)}
+  .lv-rate{grid-column:2;grid-row:4;justify-self:end;font-size:12.5px}
+  .lv-broker,.lv-eq{display:none}
+  .lv-tools{padding:8px}
+  .lv-count{margin-left:0;width:100%}
+  .lv-tools .lv-search{flex:1 1 100%;max-width:none}
+  .lv-tools select{flex:1 1 0}
   .dz{padding:18px}
   .dz-row input{min-width:0;font-size:16px}
   .dz-row .btn{width:100%;text-align:center}
