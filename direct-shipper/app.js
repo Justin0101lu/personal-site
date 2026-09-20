@@ -1,6 +1,7 @@
 /* ---------- state ----------
    Fixtures live in data.js. This file is behavior only. */
-var S = {balance:0, crm:null, reload:false, tier:1, log:[], unlocked:{}, prospectRun:false, draftCh:'email'};
+var S = {plan:'free', tokens:20, packs:0, crm:null, cap:25,
+         log:[], unlocked:{}, prospectRun:false, draftCh:'email'};
 
 /* ---------- nav ---------- */
 function go(v){
@@ -64,7 +65,37 @@ function simulate(){
 }
 
 /* ---------- render ---------- */
-function money(n){return '$'+n.toFixed(2)}
+function planOf(){
+  for(var i=0;i<PLANS.length;i++) if(PLANS[i].id===S.plan) return PLANS[i];
+  return PLANS[0];
+}
+function tok(n){ return n+(n===1?' token':' tokens'); }
+function total(){ return S.tokens + S.packs; }
+/* Spend tokens. Monthly tokens go first, packs only after they run out. */
+function spend(n, what){
+  if(total() < n){
+    flashMsg('That costs '+tok(n)+' and you have '+tok(total())+'. Nothing was charged.');
+    tab('billing');
+    return false;
+  }
+  var fromMonthly = Math.min(S.tokens, n);
+  S.tokens -= fromMonthly;
+  S.packs  -= (n - fromMonthly);
+  addLog(what, n);
+  return true;
+}
+function showRes(){
+  var r=document.getElementById('res');
+  if(!r) return;
+  r.classList.add('on');
+  setTimeout(function(){r.scrollIntoView({block:'center',behavior:'smooth'})},60);
+}
+function startPlan(id){
+  S.plan=id;
+  var pl=planOf();
+  S.tokens=pl.start;
+  go('signup');
+}
 function tagFor(s){
   if(s==='ok') return '<span class="tag t-ver">RESOLVED</span>';
   if(s==='flag') return '<span class="tag t-flag">RATE LOW</span>';
@@ -96,15 +127,16 @@ function renderFacs(){
 }
 function lockBlock(key,idx,title,desc,cost){
   return '<div class="locked"><h4>'+title+'</h4><p>'+desc+'</p>'+
-    '<button class="btn" onclick="unlock(\''+key+'\','+idx+','+cost+')">Unlock for '+money(cost)+'</button>'+
-    '<p class="cost" style="margin-top:10px;color:var(--faint);font-size:12px">Balance '+money(S.balance)+'</p></div>';
+    '<button class="btn" onclick="unlock(\''+key+'\','+idx+','+cost+')">Reveal for '+tok(cost)+'</button>'+
+    '<p class="cost" style="margin-top:10px;color:var(--faint);font-size:12px">'+
+    tok(total())+' left \u00b7 nothing charged if we come back empty</p></div>';
 }
 function openFac(i){
   var f=FACS[i], u=S.unlocked[i]||{};
   var h='<div class="pane-h"><div><h2>'+f.name+'</h2><p>'+f.addr+'</p></div>'+
     '<span class="tag '+(f.conf>80?'t-ver':'t-inf')+'">'+f.conf+'% CONFIDENCE</span></div>';
 
-  h+='<div class="panel"><h3>What Direct Shipper knows for free</h3><dl>'+
+  h+='<div class="panel"><h3>Your own freight, free <span class="tag t-free" style="margin-left:6px">NO TOKENS</span></h3><dl>'+
     '<div class="row"><dt>Facility type</dt><dd>'+f.type+'</dd></div>'+
     '<div class="row"><dt>Shipper</dt><dd>'+f.shipper+'</dd></div>'+
     '<div class="row"><dt>Your loads through here</dt><dd>'+f.mine+'</dd></div>'+
@@ -112,10 +144,11 @@ function openFac(i){
     '<div class="row"><dt>Equipment mix</dt><dd>'+f.eq+'</dd></div>'+
     '<div class="row"><dt>Commodity</dt><dd>'+f.comm+'</dd></div></dl></div>';
 
-  h+='<div class="grid2"><div class="panel"><h3>Observed lanes</h3>';
+  h+='<div class="grid2"><div class="panel"><h3>Observed lanes '+
+     '<span class="tag t-free" style="margin-left:6px">FREE</span></h3>';
   if(f.conf<50){
-    h+='<p class="ph" style="margin:0">Not enough independent carriers have moved freight through this dock to publish lanes. Direct Shipper will not guess.</p>';
-  } else if(u.lanes){
+    h+='<p class="ph" style="margin:0">Not enough unrelated carriers have moved freight through this dock to publish lanes. You see nothing rather than a guess.</p>';
+  } else {
     h+='<div class="bars">'+f.lanes.map(function(l){
       var cls=l[2]==='VERIFIED'?'t-ver':(l[2]==='OBSERVED'?'t-obs':'t-inf');
       return '<div class="bar"><span class="lbl">'+l[0]+'</span>'+
@@ -123,106 +156,174 @@ function openFac(i){
         '<span class="v">'+l[1]+'%</span>'+
         '<span class="tag '+cls+'" style="margin-left:8px">'+l[2]+' n='+l[3]+'</span></div>';
     }).join('')+'</div>';
-  } else {
-    h+=lockBlock('lanes',i,'Observed lanes','Where freight from this dock actually goes, with how many loads each figure rests on.',1.50);
   }
-  h+='</div><div class="panel"><h3>Volume</h3>';
+  h+='</div><div class="panel"><h3>Volume '+
+     '<span class="tag t-free" style="margin-left:6px">FREE</span></h3>';
   if(f.conf<50){
     h+='<p class="ph" style="margin:0">'+f.vol+'</p>';
-  } else if(u.vol){
+  } else {
     h+='<dl><div class="row"><dt>Loads per month</dt><dd>'+f.vol+'</dd></div>'+
       '<div class="row"><dt>Seasonality</dt><dd>'+f.season+'</dd></div></dl>';
-  } else {
-    h+=lockBlock('vol',i,'Monthly volume','How much moves through here each month and when it peaks.',1.00);
   }
   h+='</div></div>';
 
-  h+='<div class="grid2" style="margin-top:20px"><div class="panel"><h3>Who to call</h3>';
+  h+='<div class="panel" style="margin-top:20px"><h3>Who to call</h3>';
   if(!f.contact){
-    h+='<p class="ph" style="margin:0">No contact available — the shipper behind this dock is not resolved.</p>';
-  } else if(u.contact){
-    h+='<p style="font-size:14.5px">'+f.contact+'</p><p class="hint">Verified via Findymail 4 days ago \u00b7 charged at provider cost, $0.00 if it bounces.</p>';
+    h+='<p class="ph" style="margin:0">The shipper behind this dock is not resolved, so there is no contact to look up. Nothing to charge for.</p>';
   } else {
-    h+=lockBlock('contact',i,'Verified contact','The person who runs transportation. Run through 5 email and 9 phone providers, charged at cost, free if none of them has it.',2.50);
+    h+='<p class="ph">One token per field. We stop at the first verified result and charge nothing for a miss.</p><dl>'+
+      CONTACT_FIELDS.map(function(cf){
+        var got=u[cf.k];
+        var val= got
+          ? f.contact[cf.k]
+          : '<button class="btn-ghost" style="padding:4px 10px;font-size:13px" '+
+            'onclick="unlock(\''+cf.k+'\','+i+',1)">Reveal \u00b7 1 token</button>';
+        return '<div class="row"><dt>'+cf.label+'</dt><dd>'+val+'</dd></div>';
+      }).join('')+'</dl>'+
+      '<p class="hint">All four is 4 tokens. '+tok(total())+' left.</p>';
   }
-  h+='</div><div class="panel"><h3>What the shipper paid</h3>';
-  if(!f.paid){
-    h+='<p class="ph" style="margin:0">No records yet for this facility.</p>';
-  } else if(u.paid){
-    h+='<p style="font-size:14.5px">'+f.paid+'</p><p class="hint">From broker transaction records carriers requested under 49 CFR 371.3, aggregated. No individual record shown.</p>';
-  } else {
-    h+=lockBlock('paid',i,'What the shipper paid','The shipper side of the rate, not just what carriers got, aggregated across the network.',2.00);
-  }
-  h+='</div></div>';
+  h+='</div>';
 
   document.getElementById('detail-body').innerHTML=h;
   window.curFac=i;
   tab('detail');
 }
 function unlock(key,i,cost){
-  if(S.balance < cost){
-    flashMsg('Not enough balance — add funds to unlock this.');
-    tab('billing'); return;
-  }
-  S.balance -= cost;
+  var labels={};
+  CONTACT_FIELDS.forEach(function(cf){labels[cf.k]=cf.label});
+  if(!spend(cost, (labels[key]||key)+' \u2014 '+FACS[i].name)) return;
   if(!S.unlocked[i]) S.unlocked[i]={};
   S.unlocked[i][key]=true;
-  var names={lanes:'Observed lanes',vol:'Monthly volume',contact:'Verified contact',paid:'Shipper-paid rate'};
-  addLog(names[key]+' — '+FACS[i].name, cost);
   renderAll();
   openFac(i);
 }
 function addLog(what,cost){
-  S.log.unshift({t:new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}), w:what, c:cost, b:S.balance});
+  S.log.unshift({t:new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}),
+                 w:what, c:cost, b:total()});
 }
 function renderLog(){
   var b=document.getElementById('log-body');
-  if(!S.log.length){b.innerHTML='<tr style="cursor:default"><td colspan="4" style="color:var(--faint)">Nothing charged yet.</td></tr>';return}
+  if(!b) return;
+  if(!S.log.length){
+    b.innerHTML='<tr style="cursor:default"><td colspan="4" style="color:var(--faint)">No tokens spent yet.</td></tr>';
+    return;
+  }
   b.innerHTML=S.log.map(function(e){
     return '<tr style="cursor:default"><td class="log" data-label="When">'+e.t+'</td>'+
       '<td data-label="What">'+e.w+'</td>'+
-      '<td style="text-align:right" class="num" data-label="Charge">'+(e.c===0?'$0.00':'−'+money(e.c))+'</td>'+
-      '<td style="text-align:right" class="num" data-label="Balance after">'+money(e.b)+'</td></tr>';
+      '<td style="text-align:right" class="num" data-label="Cost">'+(e.c===0?'\u2014':'\u2212'+e.c)+'</td>'+
+      '<td style="text-align:right" class="num" data-label="Left">'+e.b+'</td></tr>';
   }).join('');
 }
-function renderTiers(){
-  document.getElementById('tiers').innerHTML=TIERS.map(function(t,i){
-    var credit=t.amt*(1+t.bonus);
-    return '<button class="tier'+(S.tier===i?' sel':'')+'" onclick="S.tier='+i+';renderTiers()">'+
-      '<div class="amt">$'+t.amt.toLocaleString()+'</div>'+
-      (t.bonus? '<div class="bonus">+'+(t.bonus*100)+'% — $'+credit.toLocaleString()+' credit</div>':'<div class="bonus" style="color:var(--faint)">$'+credit.toLocaleString()+' credit</div>')+
-      '<div class="desc">'+Math.floor(credit/1.5)+' lane records, or '+Math.floor(credit/5)+' full facility records</div></button>';
+function renderBilling(){
+  var pl=planOf();
+  var st=document.getElementById('tok-status');
+  if(st){
+    st.innerHTML='<h3>'+tok(total())+' available</h3>'+
+      '<p class="ph">On '+pl.name+(pl.price?' \u00b7 $'+pl.price+' a month':' \u00b7 free forever')+'</p><dl>'+
+      '<div class="row"><dt>Monthly tokens left</dt><dd>'+S.tokens+'</dd></div>'+
+      '<div class="row"><dt>Extra tokens (never expire)</dt><dd>'+S.packs+'</dd></div>'+
+      '<div class="row"><dt>Renews with</dt><dd>'+pl.monthly+' a month</dd></div>'+
+      '<div class="row"><dt>Rollover</dt><dd>Monthly tokens roll over 12 months</dd></div></dl>';
+  }
+  var pc=document.getElementById('plan-list');
+  if(pc){
+    pc.innerHTML=PLANS.map(function(x){
+      var cur=x.id===S.plan;
+      var perks=x.perks.map(function(t){return '<li>'+t+'</li>'}).join('')+
+                x.off.map(function(t){return '<li class="off">'+t+'</li>'}).join('');
+      var btn=cur
+        ? '<button class="btn-ghost" disabled style="opacity:.6">Current plan</button>'
+        : '<button class="btn'+(x.rec?'':'-ghost')+'" onclick="switchPlan(\''+x.id+'\')">'+
+          (x.price>(planOf().price)?'Upgrade':'Switch')+'</button>';
+      return '<div class="plan'+(cur?' rec':'')+'">'+
+        (cur?'<div class="rectag">CURRENT</div>':'')+
+        '<div class="nm">'+x.name+'</div>'+
+        '<div class="pr">$'+x.price+(x.price?'<i>/mo</i>':'')+'</div>'+
+        '<div class="who">'+x.who+'</div>'+
+        '<div class="cta">'+btn+'</div>'+
+        '<ul><li><b>'+x.monthly+' tokens</b> a month</li>'+perks+
+        (x.extra?'<li>Extra tokens <b>'+Math.round(x.extra*100)+'\u00a2</b> each</li>':'')+
+        '</ul></div>';
+    }).join('');
+  }
+  var pk=document.getElementById('pack-box');
+  if(pk){
+    if(!pl.extra){
+      pk.innerHTML='<p class="ph" style="margin:0">The Free plan does not sell extra tokens. '+
+        'Everything free stays free when you run out \u2014 your profile, receivers, dormant brokers '+
+        'and outreach keep working. Move to Carrier to buy more.</p>';
+    } else {
+      pk.innerHTML='<p class="ph">'+Math.round(pl.extra*100)+'\u00a2 a token on '+pl.name+
+        '. They never expire and are only used after your monthly tokens run out.</p>'+
+        '<div style="display:flex;gap:10px;flex-wrap:wrap">'+
+        [25,50,100].map(function(n){
+          return '<button class="btn-ghost" onclick="buyPack('+n+')">'+n+' for $'+
+            (n*pl.extra).toFixed(2)+'</button>';
+        }).join('')+'</div>'+
+        '<p class="hint" id="pack-note">Every search shows its cost before it runs.</p>';
+    }
+  }
+  var rl=document.getElementById('rate-list');
+  if(rl) rl.innerHTML=TOKEN_ITEMS.map(function(t){
+    return '<tr><td>'+t.what+'</td><td><b>'+(t.cost?tok(t.cost):'0 tokens')+'</b></td></tr>';
+  }).join('');
+  var fl=document.getElementById('free-list');
+  if(fl) fl.innerHTML=FREE_ITEMS.map(function(t){
+    return '<tr><td>'+t+'</td><td><span class="pill">FREE</span></td></tr>';
   }).join('');
 }
-function deposit(){
-  var t=TIERS[S.tier];
-  var credit=t.amt*(1+t.bonus);
-  S.balance += credit;
-  addLog('Deposit $'+t.amt.toLocaleString()+(t.bonus?' (+'+(t.bonus*100)+'% bonus)':''),0);
-  S.log[0].b=S.balance;
-  document.getElementById('dep-note').textContent='Added '+money(credit)+'. Charged $'+t.amt.toLocaleString()+' to your card.';
+function switchPlan(id){
+  var was=planOf(), now=null;
+  for(var i=0;i<PLANS.length;i++) if(PLANS[i].id===id) now=PLANS[i];
+  S.plan=id;
+  if(now.monthly>was.monthly) S.tokens += (now.monthly-was.monthly);
   renderAll();
+  flashMsg('Now on '+now.name+(now.price?' \u2014 $'+now.price+' a month, '+now.monthly+' tokens.':' \u2014 '+now.monthly+' tokens a month.'));
 }
-function toggleReload(){
-  S.reload=!S.reload;
-  document.getElementById('sw-reload').classList.toggle('on',S.reload);
+function buyPack(n){
+  var pl=planOf();
+  if(!pl.extra){ flashMsg('Move to Carrier or Fleet to buy extra tokens.'); return; }
+  S.packs += n;
+  addLog('Bought '+n+' extra tokens \u2014 $'+(n*pl.extra).toFixed(2), 0);
+  S.log[0].b=total();
+  renderAll();
+  var note=document.getElementById('pack-note');
+  var spentPerMonth=n*pl.extra;
+  var next=null;
+  for(var i=0;i<PLANS.length;i++) if(PLANS[i].price>pl.price && (!next||PLANS[i].price<next.price)) next=PLANS[i];
+  var nudge = (next && pl.price+spentPerMonth > next.price)
+    ? ' At this rate '+next.name+' at $'+next.price+' would cost you less than topping up.'
+    : '';
+  if(note) note.textContent='Added '+n+' tokens. Charged $'+(n*pl.extra).toFixed(2)+'.'+nudge;
+}
+function setCap(v){
+  var n=parseInt(String(v).replace(/[^0-9]/g,''),10);
+  S.cap = isNaN(n)?0:n;
+  var h=document.getElementById('cap-note');
+  if(h) h.textContent = S.cap
+    ? 'Direct Shipper stops spending after '+tok(S.cap)+' in a day and tells you.'
+    : 'No cap set. Every search still shows its cost before it runs.';
 }
 function estimate(){
-  document.getElementById('pr-est').textContent='8 lookalikes match your profile. $0.50 each = $4.00. Nothing charged yet.';
+  document.getElementById('pr-est').textContent=
+    PROSPECTS.length+' lookalikes match your profile. One token each = '+tok(PROSPECTS.length)+
+    '. Nothing charged yet.';
   document.getElementById('pr-err').classList.remove('on');
 }
 function runSearch(){
-  var cost=PROSPECTS.length*0.5;
-  if(S.balance<cost){
+  var cost=PROSPECTS.length;
+  if(total()<cost){
+    document.getElementById('pr-err').textContent=
+      'That is '+tok(cost)+' and you have '+tok(total())+'. Nothing was charged.';
     document.getElementById('pr-err').classList.add('on');
     return;
   }
   document.getElementById('pr-err').classList.remove('on');
-  S.balance-=cost;
-  addLog(PROSPECTS.length+' prospecting results — Ontario reefer to Phoenix', cost);
+  if(!spend(cost, PROSPECTS.length+' lookalike shippers \u2014 Ontario reefer to Phoenix')) return;
   document.getElementById('pr-results').innerHTML=
     '<div class="pane-h" style="margin-top:24px"><div><h2 style="font-size:18px">'+PROSPECTS.length+' lookalikes</h2>'+
-    '<p>Charged '+money(cost)+'. 4 excluded as existing broker relationships. Confidence label on every row.</p></div>'+
+    '<p>'+tok(cost)+' spent, one per shipper. 4 excluded as existing broker relationships. Confidence label on every row.</p></div>'+
     '<div><button class="btn-ghost" onclick="pushCrm('+PROSPECTS.length+',\'lookalikes\')">Push to CRM</button></div></div>'+
     '<table><thead><tr><th>Shipper</th><th>Facility city</th><th>Observed loads</th><th>Match</th><th></th></tr></thead><tbody>'+
     PROSPECTS.map(function(p){
@@ -231,9 +332,15 @@ function runSearch(){
         '<td data-label="Facility city" class="hide-sm">'+p[1]+'</td>'+
         '<td data-label="Observed loads" class="num">'+p[2]+'</td>'+
         '<td data-label="Match"><span class="tag '+cls+'">'+p[3]+'</span></td>'+
-        '<td data-label="" style="text-align:right"><button class="btn-ghost" style="padding:5px 10px;font-size:13px" onclick="flashMsg(\'Contact unlocked for $2.50.\')">Get contact</button></td></tr>';
+        '<td data-label="" style="text-align:right"><button class="btn-ghost" style="padding:5px 10px;font-size:13px" '+
+        'onclick="buyContact(\''+p[0].replace(/'/g,"")+'\')">Get contact \u00b7 4 tokens</button></td></tr>';
     }).join('')+'</tbody></table>';
   renderAll();
+}
+function buyContact(who){
+  if(!spend(4, 'Contact \u2014 '+who)) return;
+  renderAll();
+  flashMsg('Name, LinkedIn, email and phone found for '+who+'. 4 tokens spent.');
 }
 function stTag(st){
   if(st==='clear') return '<span class="tag t-ver">TERM ELAPSED</span>';
@@ -246,7 +353,7 @@ function renderReact(){
   if(!b) return;
   b.innerHTML = DORMANT.map(function(d,i){
     var act = d.st==='clear'
-      ? '<button class="btn-ghost" style="padding:5px 10px;font-size:13px" onclick="showShippers('+i+')">See '+d.ship+' shippers</button>'
+      ? '<button class="btn-ghost" style="padding:5px 10px;font-size:13px" onclick="showShippers('+i+')">See '+d.ship+' shippers \u00b7 '+tok(d.ship)+'</button>'
       : '<span class="hint" style="margin:0">&mdash;</span>';
     return '<tr style="cursor:default">'+
       '<td class="lead">'+d.b+'<div class="cell-sub">'+d.note+'</div></td>'+
@@ -260,11 +367,9 @@ function renderReact(){
 }
 function showShippers(i){
   var d=DORMANT[i];
-  if(S.balance < 2.50){
-    flashMsg('Contacts for these shippers cost $2.50 each. Add funds to unlock.');
-    tab('billing'); return;
-  }
-  flashMsg(d.ship+' shippers from '+d.b+' shown. Read the clause on file before you reach out.');
+  if(!spend(d.ship, d.ship+' shippers behind '+d.b)) return;
+  renderAll();
+  flashMsg(d.ship+' shippers from '+d.b+' revealed for '+tok(d.ship)+'. Read the clause on file before you reach out.');
 }
 
 function recvTag(st){
@@ -277,7 +382,7 @@ function renderRecv(){
   if(!b) return;
   b.innerHTML = RECEIVERS.map(function(r,i){
     var act = r.contact
-      ? '<button class="btn-ghost" style="padding:5px 10px;font-size:13px" onclick="getRecv('+i+')">Get contact</button>'
+      ? '<button class="btn-ghost" style="padding:5px 10px;font-size:13px" onclick="getRecv('+i+')">Get contact \u00b7 4 tokens</button>'
       : '<span class="hint" style="margin:0">&mdash;</span>';
     return '<tr style="cursor:default">'+
       '<td class="lead">'+r.n+'<div class="cell-sub">'+r.c+' &middot; '+r.note+'</div></td>'+
@@ -291,14 +396,11 @@ function renderRecv(){
 }
 function getRecv(i){
   var r=RECEIVERS[i];
-  if(S.balance < 2.50){
-    flashMsg('Verified contacts are $2.50 each. Add funds to unlock.');
-    tab('billing'); return;
-  }
-  S.balance -= 2.50;
-  addLog('Verified contact \u2014 '+r.n, 2.50);
+  if(!r.contact){ flashMsg('No contact on file for this dock, so there is nothing to charge for.'); return; }
+  if(!spend(4, 'Contact \u2014 '+r.n)) return;
   renderAll();
-  flashMsg(r.contact+' \u2014 contact unlocked. You deliver here '+r.mine+' times already.');
+  flashMsg(r.contact.name+' \u00b7 '+r.contact.email+' \u00b7 '+r.contact.phone+
+           ' \u2014 4 tokens. You deliver here '+r.mine+' times already.');
 }
 
 function crmConnect(which){
@@ -410,10 +512,49 @@ function renderQueue(){
       '<td data-label="Status">'+qTag(st)+'</td></tr>';
   }).join('');
 }
-function renderOutreach(){ renderChans(); renderSeq(); renderDraft(); renderQueue(); }
+function renderOutreach(){
+  var pl=planOf();
+  var g=document.getElementById('outreach-gate');
+  if(g) g.innerHTML = pl.outreach ? '' :
+    '<div class="cbox warn" style="margin-bottom:18px"><h4>Sending needs Carrier or Fleet</h4>'+
+    '<p style="margin:0">Drafting and reading are free \u2014 look at everything below. Sends are '+
+    'unlimited on both paid plans, with no per-seat and no per-mailbox fee.</p></div>';
+  var sub=document.getElementById('seq-sub');
+  if(sub){
+    var n=SEQUENCE.length, days=SEQUENCE[n-1].day;
+    var chs={}; SEQUENCE.forEach(function(x){chs[x.ch]=1});
+    var names=Object.keys(chs).map(function(id){return chan(id).label});
+    sub.textContent=n+' touches over '+days+' days across '+names.join(', ')+
+      '. Sends never cost a token, and everything stops the moment they reply.';
+  }
+  renderChans(); renderSeq(); renderDraft(); renderQueue();
+}
+function approveSend(){
+  if(!planOf().outreach){
+    flashMsg('Sending is on Carrier and Fleet. Drafting stays free.');
+    tab('billing'); return;
+  }
+  flashMsg('Approved and sent. The other '+(SEQUENCE.length-1)+' touches are scheduled through day '+
+           SEQUENCE[SEQUENCE.length-1].day+'. No tokens charged \u2014 sends are free.');
+}
+function renderSources(){
+  var g=document.getElementById('src-grid');
+  if(g) g.innerHTML=SOURCES.map(function(x){
+    return '<div class="src"><div class="big">'+x.big+'</div><h4>'+x.h+'</h4><p>'+x.p+'</p></div>';
+  }).join('');
+  var w=document.getElementById('waterfalls');
+  if(w) w.innerHTML=WATERFALLS.map(function(x){
+    return '<div class="fallcard"><h4>'+x.h+' <span>'+x.sub+'</span></h4><ol>'+
+      x.list.map(function(n){return '<li>'+n+'</li>'}).join('')+
+      '</ol><p class="fallnote">'+x.note+'</p></div>';
+  }).join('');
+}
 
 function renderAll(){
-  document.getElementById('bal').textContent=money(S.balance);
-  renderLoads(); renderFacs(); renderTiers(); renderLog(); renderReact(); renderRecv(); renderOutreach();
+  var b=document.getElementById('bal');
+  if(b) b.textContent=total();
+  var pn=document.getElementById('plan-name');
+  if(pn) pn.textContent=planOf().name;
+  renderLoads(); renderFacs(); renderBilling(); renderLog();
+  renderReact(); renderRecv(); renderOutreach(); renderSources();
 }
-renderTiers();

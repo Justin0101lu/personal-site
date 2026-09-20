@@ -15,142 +15,384 @@
 
 <!-- ============ LANDING ============ -->
 <div class="view on" id="v-landing">
-  <div class="topbar"><div class="topbar-in">
-    <div class="logo"><b></b>Direct Shipper</div>
-    <nav class="topnav">
-      <a href="#how">How it works</a>
-      <a href="#pricing">Pricing</a>
-      <button class="btn-ghost" onclick="go('signin')">Sign in</button>
-      <button class="btn" onclick="go('signup')">Start free</button>
-    </nav>
-  </div></div>
+<div class="topbar"><div class="topbar-in">
+  <div class="logo"><b></b>Direct&nbsp;Shipper</div>
+  <nav class="topnav">
+    <a href="#how">What it does</a>
+    <a href="#pricing">Pricing</a>
+    <button class="btn-ghost" onclick="go('signin')">Sign in</button>
+    <button class="btn" onclick="go('signup')">Start free</button>
+  </nav>
+</div></div>
 
-  <div class="hero"><div class="wrap">
+<!-- ================= HERO ================= -->
+<div class="hero"><div class="wrap">
+
+  <div>
     <h1>You know your trucks. Do you know your freight?</h1>
-    <p class="lede">Send Direct Shipper your old rate confirmations. It reads them, analyzes what you actually haul, and starts with the warmest freight you have: the receivers you already back into every week, who ship outbound too.</p>
-    <div class="hero-cta">
-      <button class="btn btn-lg" onclick="go('signup')">Upload your rate cons</button>
-      <button class="btn-ghost btn-lg" onclick="go('signup')">See how it works</button>
+    <p class="lede">Connect your email and Direct Shipper reads every rate con in it, going back years. You find out what you actually haul, which lanes are quietly underpaying you, and which shippers you can win direct &mdash; starting with the docks you already back into every week.</p>
+    <div class="dz">
+      <div class="dz-row">
+        <input type="text" placeholder="Paste a rate con, or connect your inbox" value="">
+        <button class="btn" onclick="showRes()">Read my freight</button>
+      </div>
+      <p class="dz-or">Or <b>drop a folder of old rate cons here</b> &middot; no card, nothing to install</p>
     </div>
-    <p class="hero-note">Free to parse and profile. No card to start.</p>
+    <p class="hero-note">Reading your own freight is free, and stays free. No card.</p>
+  </div>
 
-    <div class="demo">
-      <div class="doc">
-        <div class="doc-h">RATE CONFIRMATION — as received</div>
-        LOAD #<em>4471882</em><br>
-        BROKER <em>MIDLAND LOGISTICS LLC</em><br>
-        MC <em>884213</em><br><br>
-        PICKUP<br>
-        <span class="hl">LINEAGE — ONTARIO 4</span><br>
-        <span class="hl">4200 E AIRPORT DR</span><br>
-        ONTARIO CA 91761<br><br>
-        DELIVERY<br>
-        SW DISTRIBUTION CTR<br>
-        PHOENIX AZ 85043<br><br>
-        EQUIP <em>REEFER 53</em> · TEMP <em>-10F</em><br>
-        WT <em>41,200</em> · RATE <em>$2,850.00</em>
-      </div>
+  
 
-      <div class="chevron">&#8594;</div>
-
-      <div class="rec">
-        <div class="rec-h">
-          <div>
-            <h3>Sunrise Frozen Foods</h3>
-            <p>Ships through Lineage Ontario 4 &middot; 3PL cold storage</p>
-          </div>
-          <span class="tag t-ver">VERIFIED</span>
-        </div>
-        <div class="rec-body">
-          <dl>
-            <div class="row"><dt>Facility type</dt><dd>3PL, not shipper-owned</dd></div>
-            <div class="row"><dt>Observed loads / mo</dt><dd>41</dd></div>
-            <div class="row"><dt>Equipment</dt><dd>Reefer 91% &middot; Dry 9%</dd></div>
-            <div class="row"><dt>Ontario &rarr; Phoenix</dt><dd>117 observed</dd></div>
-            <div class="row"><dt>Transportation manager</dt><dd>J. Ruiz &middot; verified</dd></div>
-            <div class="row"><dt>Broker authority</dt><dd>Active &middot; bond current</dd></div>
-          </dl>
-        </div>
-      </div>
+  <div class="result" id="res">
+    <div class="result-h">
+      <div><h3>Your freight profile</h3><p>Read from 1,184 rate cons &middot; Jan 2021 to today</p></div>
+      <span class="tag t-free">FREE</span>
     </div>
-  </div></div>
+    
 
-  <div class="strip"><div class="strip-in">
-    <span><i class="dot"></i>Works with any TMS — or none</span>
-    <span><i class="dot"></i>Export to Sheets, CSV, or webhook</span>
-    <span><i class="dot"></i>Your rates never shown to anyone</span>
-  </div></div>
-
-  <div class="sect" id="how"><div class="wrap">
-    <h2>Set it up once and stop typing loads</h2>
-    <p class="sub">Most carriers rekey the same rate con into a spreadsheet and a TMS. Point your broker email at Direct Shipper and it stops.</p>
-    <div class="steps">
-      <div class="step">
-        <div class="n">Step 1</div>
-        <h4>Send us your old rate cons</h4>
-        <p>Forward your broker email or drop in a folder of PDFs going back as far as you have. Every one becomes a structured load — shipper, facility, lane, equipment, commodity, rate. Nothing to rekey.</p>
-      </div>
-      <div class="step">
-        <div class="n">Step 2</div>
-        <h4>Find out what you actually haul</h4>
-        <p>Most carriers can't say what their top commodity is, which lanes pay best, or which ones they run empty out of. Direct Shipper reads your history and tells you. That's your freight profile, and it's free.</p>
-      </div>
-      <div class="step">
-        <div class="n">Step 3</div>
-        <h4>Start with the docks you already back into</h4>
-        <p>You deliver to these receivers every week. They ship outbound too, and no broker put you in the room — you got there on your own. Direct Shipper shows what each one ships and who runs their transportation.</p>
-      </div>
-    </div>
-    <div class="trust" style="margin-top:32px">
-      <h4>Three ways to grow, warmest first</h4>
-      <p>Direct Shipper never surfaces a shipper as a target because you hauled it for a broker you still work with. Instead it works outward from what you already have. <b>Receivers</b> — the docks you deliver to weekly, who ship outbound themselves, and where you already have a face and a badge. <b>Dormant relationships</b> — old brokers, with last load date, authority status and your own agreement's clause, so you can see which holds have run their term. <b>Lookalikes</b> — facilities moving freight like yours where you have no relationship at all. On the middle one, Direct Shipper shows dates and documents, never legal conclusions; whether you're clear is a question for your attorney.</p>
-    </div>
-  </div></div>
-
-  <div class="sect" id="pricing"><div class="wrap">
-    <h2>Free to know what you hauled. Paid to know what to go get.</h2>
-    <p class="sub">No seats and no subscription. Put money on your balance and spend it per answer. Nothing is charged when Direct Shipper has no answer for you.</p>
-    <div class="split">
-      <div class="col">
-        <h4>Free, always <span class="tag t-ver">NO CARD</span></h4>
-        <p class="price">Unlimited</p>
-        <ul>
-          <li><b>Rate con parsing and load creation</b></li>
-          <li><b>Email forwarding and inbox sync</b></li>
-          <li><b>Shipper and facility identification</b></li>
-          <li><b>Facility type</b> <span class="amt">3PL or owned</span></li>
-          <li><b>Broker authority and bond check</b></li>
-          <li><b>Double-brokering flags</b></li>
-          <li><b>Export</b> <span class="amt">Sheets, CSV, API</span></li>
-        </ul>
-      </div>
-      <div class="col paid">
-        <h4>Pay as you go</h4>
-        <p class="price">Prepaid balance, billed per record</p>
-        <ul>
-          <li><b>Observed lanes at a facility</b> <span class="amt">$1.50</span></li>
-          <li><b>Monthly volume and seasonality</b> <span class="amt">$1.00</span></li>
-          <li><b>Verified contact</b> <span class="amt">$2.50</span></li>
-          <li><b>What the shipper paid</b> <span class="amt">$2.00</span></li>
-          <li><b>Find similar facilities</b> <span class="amt">$0.50 each</span></li>
-          <li><b>Complete facility record</b> <span class="amt">$5.00</span></li>
-          <li><b>API and MCP access</b> <span class="amt">same rates</span></li>
-        </ul>
-      </div>
+    <div class="result-b">
+      <dl>
+        <div class="row"><dt>What you actually haul</dt><dd>Frozen food 61% &middot; Produce 22%</dd></div>
+        <div class="row"><dt>Equipment</dt><dd>Reefer 94%</dd></div>
+        <div class="row"><dt>Best paying lane</dt><dd>Corona &rarr; Dallas &middot; $2.88/mi</dd></div>
+        <div class="row"><dt>Busiest lane</dt><dd>Ontario &rarr; Phoenix &middot; $2.62/mi</dd></div>
+        <div class="row"><dt>Running empty most</dt><dd>Denver &middot; 74% of returns</dd></div>
+        <div class="row"><dt>Docks you already deliver to</dt><dd>14 &middot; 9 ship outbound too</dd></div>
+      </dl>
+      <p class="hero-note">All of that is free. You pay only when Direct Shipper goes out and finds you someone new.</p>
     </div>
 
-    <div class="trust">
-      <h4>What happens to your data</h4>
-      <p>Direct Shipper keeps what you forward and counts it toward what the industry can see in aggregate. Your rate, your broker, and your company are never shown to another customer, and nothing about a facility is published until enough unrelated carriers have moved freight through it that no single load can be traced back. You can delete everything you've sent, any time.</p>
-    </div>
-  </div></div>
+    
+  </div>
+</div></div>
 
-  <footer><div class="wrap">
-    Direct Shipper &middot; A prototype. Not a live product.
-  </div></footer>
+<div class="strip"><div class="strip-in">
+  <span><i class="dot"></i>Works alongside any TMS &mdash; or a spreadsheet</span>
+  <span><i class="dot"></i>Every figure shows how many loads it rests on</span>
+  <span><i class="dot"></i>Your own data is never shown to anyone else</span>
+</div></div>
+
+<!-- ================= PLAYBOOKS ================= -->
+<div class="sect" id="how"><div class="wrap">
+  <h2 style="max-width:26ch">Stop renting your freight from brokers</h2>
+  
+  <p class="sub">Every load you haul under someone else&rsquo;s contract is margin you handed away. Understanding your own freight is free. You pay only when Direct Shipper goes out and finds you someone new.</p>
+  
+
+  <!-- CARRIER PLAYS -->
+  <div class="plays">
+    <div class="play">
+      <div class="pk">Playbook 01</div>
+      <h4>Win the freight you already know how to haul</h4>
+      <p>Facilities moving the same commodity on the same lanes you run well &mdash; with no broker in between and nobody&rsquo;s contract in your way. Your own history does the targeting.</p>
+      <div class="cost"><span class="c">1 token</span><span class="n">per shipper</span></div>
+    </div>
+    <div class="play">
+      <div class="pk">Playbook 02</div>
+      <h4>Find out what your freight is really worth</h4>
+      <p>Your whole history read back to you &mdash; commodity mix, length of haul, rate per mile by lane. Most carriers discover their busiest lane is their worst paying one. Better to know.</p>
+      <div class="cost"><span class="c"><span class="tag t-free">FREE</span></span><span class="n">Unlimited</span></div>
+    </div>
+    <div class="play">
+      <div class="pk">Playbook 03</div>
+      <h4>Take the docks you already back into</h4>
+      <p>You are on their property every week and no broker put you there. Most of them ship outbound too, and that freight is theirs to award &mdash; not their inbound broker&rsquo;s.</p>
+      <div class="cost"><span class="c"><span class="tag t-free">FREE</span></span><span class="n">Contacts cost tokens</span></div>
+    </div>
+    <div class="play">
+      <div class="pk">Playbook 04</div>
+      <h4>Reclaim the shippers nobody is holding anymore</h4>
+      <p>Brokers who folded, or that you walked away from years ago. Direct Shipper digs them out of your old mail and lines the last load date up against the term you actually signed.</p>
+      <div class="cost"><span class="c"><span class="tag t-free">FREE</span></span><span class="n">Contacts cost tokens</span></div>
+    </div>
+    <div class="play">
+      <div class="pk">Playbook 05</div>
+      <h4>Stop donating your empty miles</h4>
+      <p>Direct Shipper finds the cities you keep deadheading out of &mdash; 74% of your Denver returns, say &mdash; then hunts shippers there whose freight fits your trailers. Those miles are already paid for.</p>
+      <div class="cost"><span class="c">1 token</span><span class="n">per shipper</span></div>
+    </div>
+    <div class="play">
+      <div class="pk">Playbook 06</div>
+      <h4>Work them until they answer</h4>
+      <p>Ten touches over 30 days &mdash; email, phone tasks and LinkedIn &mdash; each one written from your own freight history. From your domain, and it stops the second they reply.</p>
+      <div class="cost"><span class="c"><span class="tag t-free">FREE</span></span><span class="n">Unlimited sends</span></div>
+    </div>
+  </div>
+
+  <!-- BROKER PLAYS -->
+  
+</div></div>
+
+<!-- ================= POSITIONING ================= -->
+<div class="sect"><div class="wrap">
+  <h2>A lead list guesses. Your rate cons don&rsquo;t.</h2>
+  <p class="sub">Every lead tool can hand you companies with a food NAICS code. None of them knows what you are good at hauling, what you charge, or which dock you are parked at on Thursday. Your paperwork knows all three.</p>
+  
+  <div class="vs">
+    <div class="vsc them">
+      <h4>A LEAD DATABASE</h4>
+      <p class="q">"reefer food shippers near Los Angeles"</p>
+      <p class="a">412 companies with a food NAICS code and a warehouse somewhere in the county. <b>You find out which of them fit by calling all 412.</b></p>
+    </div>
+    <div class="vsc">
+      <h4>ONDOCK</h4>
+      <p class="q">"shippers like the freight I already haul"</p>
+      
+      <p class="a">37 facilities moving frozen food on 400-mile reefer lanes, matched to your own history, each with the reason it fits. <b>Four excluded as existing broker relationships.</b></p>
+      
+    </div>
+  </div>
+</div></div>
+
+<!-- ================= DATA TRUST ================= -->
+<div class="sect"><div class="wrap">
+  <h2>We don&rsquo;t help anyone solicit freight you&rsquo;re under a hold on.</h2>
+  <p class="sub">This is the first thing a careful carrier asks, so here it is on the front page. Direct Shipper works outward from what you already have &mdash; it never hands you a shipper to call because you hauled it for a broker you still work with.</p>
+
+  <div class="fall" style="margin-top:28px">
+    <div class="fallcard">
+      <h4>What never happens <span>no exceptions</span></h4>
+      <ol style="counter-reset:none">
+        <li style="counter-increment:none">Your rates and your broker names are never shown to anyone</li>
+        <li style="counter-increment:none">Your customers are never surfaced to another carrier</li>
+        <li style="counter-increment:none">No broker ever learns you are a customer here</li>
+        <li style="counter-increment:none">Nobody can query anything traceable to your loads</li>
+        <li style="counter-increment:none">We never sell your data to a brokerage, a factor, or anyone else</li>
+      </ol>
+      <p class="fallnote">Delete your data any time and it stops counting toward anything, immediately and permanently.</p>
+    </div>
+    <div class="fallcard">
+      <h4>Three ways to grow, warmest first <span>how the matching works</span></h4>
+      <ol>
+        <li><b>Receivers</b> &mdash; docks you already deliver to, who ship outbound too</li>
+        <li><b>Dormant brokers</b> &mdash; last load date against your own non-solicit term</li>
+        <li><b>Lookalikes</b> &mdash; facilities moving freight like yours, no relationship at all</li>
+      </ol>
+      <p class="fallnote">Shippers you currently reach through a broker are filtered out of all three, and the number excluded is shown on every result.</p>
+    </div>
+  </div>
+
+  <div class="cbox warn" style="margin-top:20px">
+    <h4>Why receivers are the cleanest place to start</h4>
+    <p style="margin:0">A broker&rsquo;s non-solicit protects the broker&rsquo;s customer &mdash; the shipper who tendered the load. The consignee on the delivery end usually is not that customer, and their outbound freight is theirs to award. You are also the only carrier in the conversation who can say &ldquo;I am at your dock Thursday anyway.&rdquo; A small number of agreements are written broadly enough to reach consignees as well; upload yours and Direct Shipper flags those.</p>
+  </div>
+
+  <div class="cbox warn" style="margin-top:20px">
+    <h4>On dormant brokers, read this part</h4>
+    <p style="margin:0">Direct Shipper shows you dates and documents. It does not tell you that you are legally clear to call someone, because that is not ours to say. Terms run anywhere from six months to indefinitely, plenty survive termination, and a broker shutting down does not reliably end the obligation &mdash; it can pass to whoever buys the book. We surface the clause you actually signed and the date of your last load. Read it, then ask your attorney.</p>
+  </div>
+</div></div>
+
+<!-- ================= SOURCES ================= -->
+<div class="sect" id="sources"><div class="wrap">
+  <h2>Where the data comes from</h2>
+  <p class="sub">Some of it is yours. Some we buy and pass along. You should be able to tell which is which on any figure you see.</p>
+  <div class="srcgrid">
+    <div class="src">
+      <div class="big">Yours</div>
+      <h4>Your rate cons</h4>
+      
+      <p>What you haul, where, for whom, at what rate. Read once, kept private, and the basis of every match.</p>
+      
+    </div>
+    <div class="src">
+      <div class="big">Free</div>
+      <h4>FMCSA</h4>
+      <p>Operating authority, bond status and history. Public record, never charged for.</p>
+    </div>
+    <div class="src">
+      <div class="big">Bought</div>
+      <h4>Emails &amp; phones</h4>
+      <p>Five email and nine phone providers, tried in order until one returns a verified result.</p>
+    </div>
+    <div class="src">
+      <div class="big">Licensed</div>
+      <h4>Imports &amp; facilities</h4>
+      <p>Customs bills of lading and facility records, licensed with redistribution rights in writing.</p>
+    </div>
+  </div>
+
+  <div class="fall">
+    <div class="fallcard">
+      <h4>Email waterfall <span>first verified result wins</span></h4>
+      <ol>
+        <li>Findymail</li><li>LeadMagic</li><li>Wiza</li><li>People Data Labs</li><li>Prospeo</li>
+      </ol>
+      <p class="fallnote">We stop at the first verified match and never hand over an address we have not checked. If one bounces, tell us and it comes back off your bill.</p>
+    </div>
+    <div class="fallcard">
+      <h4>Phone waterfall <span>first verified result wins</span></h4>
+      <ol>
+        <li>Bytemine</li><li>People Data Labs</li><li>LeadMagic</li><li>Wiza</li><li>Findymail</li>
+        <li>Forager</li><li>Prospeo</li><li>ContactOut</li><li>Zeliq</li>
+      </ol>
+      <p class="fallnote">Direct lines and mobiles where they exist. No match means no charge, and we say &ldquo;none found&rdquo; rather than guessing.</p>
+    </div>
+  </div>
+</div></div>
+
+<!-- ================= PRICING ================= -->
+<div class="sect" id="pricing"><div class="wrap">
+  <h2>One token, one answer.</h2>
+  <p class="sub">A token buys one thing Direct Shipper had to go out and find &mdash; a shipper, a name, an email, a phone number. Nothing else costs tokens, and you are never charged when we come back empty-handed.</p>
+
+  <div class="cbox" style="margin-top:26px;border-left:3px solid var(--blue)">
+    <h4>How tokens work</h4>
+    <table class="ratetbl" style="margin-top:10px">
+      <tr><td>One lookalike shipper</td><td><b>1 token</b></td></tr>
+      <tr><td>Reveal who a contact is &mdash; name and job title</td><td><b>1 token</b></td></tr>
+      <tr><td>Their LinkedIn profile</td><td><b>1 token</b></td></tr>
+      <tr><td>A verified email address</td><td><b>1 token</b></td></tr>
+      <tr><td>A direct phone number</td><td><b>1 token</b></td></tr>
+      <tr><td>Nothing found</td><td><b>0 tokens</b></td></tr>
+    </table>
+    <p style="margin-top:14px;font-size:13.5px;color:var(--faint)">So a shipper you have never heard of, with the transportation manager&rsquo;s name, email and phone, runs you <b style="color:var(--ink)">5 tokens</b>. Everything about your own freight is free and always will be.</p>
+  </div>
+
+  <div class="plans">
+    <div class="plan">
+      <div class="nm">Free</div><div class="pr">$0</div>
+      <div class="who">Free forever, not a trial</div>
+      <div class="cta"><button class="btn-ghost" onclick="startPlan('free')">Get started free</button></div>
+      <ul>
+        <li><b>Inbox connect</b> &mdash; full history scan</li>
+        <li>Unlimited rate con parsing</li>
+        <li>Your full freight profile</li>
+        <li>Receivers &amp; dormant brokers</li>
+        <li><b>20 tokens</b> to start, then 10 a month</li>
+        <li class="off">No extra tokens</li>
+        <li class="off">No export or outreach</li>
+      </ul>
+    </div>
+    <div class="plan rec">
+      <div class="rectag">MOST CARRIERS</div>
+      <div class="nm">Carrier</div><div class="pr">$39<i>/mo</i></div>
+      <div class="who">Owner-operators and small fleets</div>
+      <div class="cta"><button class="btn" onclick="startPlan('carrier')">Get started</button></div>
+      <ul>
+        <li><b>100 tokens</b> a month</li>
+        <li><b>Outreach</b> &mdash; unlimited sends</li>
+        <li>Export to Sheets, CSV, webhook</li>
+        <li>Everything in Free, unlimited</li>
+        <li>Unlimited users</li>
+        <li>Extra tokens <b>50&cent;</b> each</li>
+      </ul>
+    </div>
+    <div class="plan">
+      <div class="nm">Fleet</div><div class="pr">$149<i>/mo</i></div>
+      <div class="who">Fleets with someone selling</div>
+      <div class="cta"><button class="btn-ghost" onclick="startPlan('fleet')">Get started</button></div>
+      <ul>
+        <li><b>500 tokens</b> a month</li>
+        <li>Everything in Carrier</li>
+        <li><b>Load history import</b> — CSV &amp; scheduled report</li>
+        <li>Broker agreement parsing</li>
+        <li>Unlimited users</li>
+        <li>Extra tokens <b>40&cent;</b> each</li>
+      </ul>
+    </div>
+  </div>
+  <p class="hero-note">Connecting your inbox is free on every plan, including the free one &mdash; reading your own freight should not cost you anything. Unlimited users on every paid plan; we do not charge per seat. Monthly tokens roll over for 12 months, extra tokens never expire. Cancel any month.</p>
+
+  <div class="fall" style="margin-top:30px">
+    <div class="cbox">
+      <h4>Need more before the month is up</h4>
+      <p style="margin-bottom:12px">Buy extra tokens any time at your plan&rsquo;s rate. They never expire, and they are only used after your monthly tokens run out.</p>
+      <table class="ratetbl">
+        <tr><td>On <b>Carrier</b></td><td>50&cent; a token</td></tr>
+        <tr><td>On <b>Fleet</b></td><td>40&cent; a token</td></tr>
+      </table>
+      <p style="margin-top:12px;font-size:13px;color:var(--faint)">Buying extra every month usually means the next plan up is cheaper. We will say so in the app rather than let you keep paying the higher rate.</p>
+    </div>
+    <div class="cbox">
+      <h4>Never costs a token</h4>
+      <table class="ratetbl">
+        <tr><td>Connecting your inbox</td><td><span class="pill">FREE</span></td></tr>
+        <tr><td>Scanning your whole mail history</td><td><span class="pill">FREE</span></td></tr>
+        <tr><td>Parsing rate cons and BOLs</td><td><span class="pill">FREE</span></td></tr>
+        <tr><td>Your freight profile and lane rates</td><td><span class="pill">FREE</span></td></tr>
+        <tr><td>Deadhead analysis</td><td><span class="pill">FREE</span></td></tr>
+        <tr><td>Receivers you already deliver to</td><td><span class="pill">FREE</span></td></tr>
+        <tr><td>How many contacts a facility has</td><td><span class="pill">FREE</span></td></tr>
+        <tr><td>Dormant brokers and authority checks</td><td><span class="pill">FREE</span></td></tr>
+        <tr><td>Outreach emails, calls and follow-ups</td><td><span class="pill">FREE</span></td></tr>
+        <tr><td>Export and extra users</td><td><span class="pill">FREE</span></td></tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="cbox" style="margin-top:20px">
+    <h4>Building something on top of this?</h4>
+    <p style="margin:0">We are working on an API and an MCP server so software and AI agents can ask the same questions the app does. It is not ready and we are not pricing it yet &mdash; tell us what you would want from it and we will come back to you first.</p>
+    <div style="margin-top:14px"><button class="btn-ghost" onclick="go('signup')">Tell us what you need</button></div>
+  </div>
+
+  <div class="cbox" style="margin-top:20px">
+    <h4>Three things we will not do to you on pricing</h4>
+    <table class="ratetbl" style="margin-top:8px">
+      <tr><td><b>Charge for a miss.</b> No result, no token. If an email bounces, tell us and the token goes back.</td><td></td></tr>
+      <tr><td><b>Expire your tokens.</b> Monthly tokens roll over a year. Packs never expire at all.</td><td></td></tr>
+      <tr><td><b>Let you overspend by accident.</b> Every account has a daily cap you set, and every search shows its cost before it runs.</td><td></td></tr>
+    </table>
+  </div>
+</div></div>
+
+<!-- ================= FAQ ================= -->
+<div class="sect"><div class="wrap" style="max-width:840px">
+  <h2>Common questions</h2>
+  <div class="faq">
+
+    <details class="q-item"><summary>Do I have to switch my TMS?</summary>
+      <p>No. Direct Shipper is not a TMS and does not want to be. It reads your rate cons and hands the loads back to whatever you already run, including a spreadsheet. If you would rather not connect email, most systems can email you a scheduled load report &mdash; point that at your Direct Shipper address, or just upload a load history export.</p></details>
+
+    <details class="q-item"><summary>Am I going to get in trouble with my brokers for uploading rate cons?</summary>
+      <p>Direct Shipper is not built to route around them. Your uploads are used to work out what you haul and to feed facility-level figures that cannot be traced back to you. Shippers you currently reach through a broker are filtered out of your own results rather than served up as targets, and no broker ever sees that you are a customer. If you would rather not contribute at all, delete your data and the free profile still works on what is already in your account.</p></details>
+
+    <details class="q-item"><summary>What is a lookalike, exactly?</summary>
+      <p>A facility shipping freight that resembles what your own history shows you haul &mdash; same commodity family, comparable length of haul, equipment you actually run &mdash; where you have no existing relationship. The match comes from your loads, not from a list of companies that happen to share an industry code.</p></details>
+
+    <details class="q-item"><summary>Why start with receivers instead of shippers?</summary>
+      <p>Because you already have the relationship and nobody brokered it. You back into their dock weekly, the receiving manager knows your trucks, and their outbound freight has nothing to do with whoever tendered your inbound load. Direct Shipper shows which of your receivers actually ship outbound, what they ship, and whether it fits your trailers &mdash; and which ones are inbound-only, so you do not waste a call.</p></details>
+
+    
+
+    
+
+    
+
+    
+
+    <details class="q-item"><summary>Why tokens instead of just charging me dollars?</summary>
+      <p>Because one token means one thing found, which is easier to hold in your head than five different prices. A shipper is a token. A name is a token. An email is a token. A miss is nothing. Every plan shows what a token costs you in cents, so you can always do the dollar math if you want to &mdash; but you should not have to.</p></details>
+    <details class="q-item"><summary>Is the free plan actually free, or is it a trial?</summary>
+      <p>Free, with no clock on it. Connecting your inbox and scanning every rate con in it, however far back it goes, costs nothing on any plan &mdash; that is your own freight and you should not have to pay to see it. You also get 20 tokens when you start and 10 more every month you keep the inbox connected. Parsing, your freight profile, your receivers and your dormant broker list stay free and unlimited no matter what. Plenty of carriers will never need a paid plan, and that is fine &mdash; the loads you forward make the network better for everyone.</p></details>
+    <details class="q-item"><summary>What happens when I run out of tokens?</summary>
+      <p>Nothing breaks. Everything free stays free &mdash; your freight profile, your receivers, your dormant brokers, your outreach. You just cannot pull new shippers or contacts until you buy a pack or your month resets. There is no overage bill and no surprise charge, ever.</p></details>
+    <details class="q-item"><summary>Do you sell my data to brokers?</summary>
+      <p>No. We do not sell your data to brokerages, factors, load boards, or anyone else, and there is no broker-facing product. Facility-level patterns are only ever published once enough unrelated carriers have moved freight through a dock that no single load can be traced back &mdash; and below that threshold you see nothing rather than a number. Your rates, your broker names and your customers never leave your account.</p></details>
+    <details class="q-item"><summary>What if a figure turns out to be wrong?</summary>
+      <p>Tell us and the charge comes back. Every figure shows the sample size behind it so you can judge it yourself, and we would rather show nothing than guess. When a facility has not been seen by enough unrelated companies, you will see &ldquo;not enough observations&rdquo; instead of a number.</p></details>
+
+    <details class="q-item"><summary>Can I get my data out?</summary>
+      <p>Yes, any time, in full. Export everything to CSV or Google Sheets, or point a webhook at it and pull it into whatever you run. Deleting your data is a single control and it is permanent &mdash; your loads stop counting toward anything the moment you use it.</p></details>
+
+  </div>
+</div></div>
+
+<div class="cta-end"><div class="wrap">
+  <h2>Start with one rate con. Keep the margin.</h2>
+  
+  <p>Paste one in and see who is really behind the freight you hauled. No account, no card, nothing to cancel.</p>
+  
+  <div class="g">
+    <button class="btn btn-lg" onclick="window.scrollTo({top:0})"><span>Try a rate con</span></button>
+    <button class="btn-ghost btn-lg" onclick="document.getElementById('pricing').scrollIntoView()">See pricing</button>
+  </div>
+</div></div>
+
+<footer><div class="wrap">Direct Shipper &middot; directshipper.ai &middot; A prototype. Not a live product. Pricing is a placeholder.</div></footer>
 </div>
 
-<!-- ============ SIGN UP ============ -->
 <div class="view" id="v-signup">
   <div class="topbar"><div class="topbar-in">
     <div class="logo" onclick="go('landing')" style="cursor:pointer"><b></b>Direct Shipper</div>
@@ -252,9 +494,9 @@
       <button class="tab" data-p="billing" onclick="tab('billing')">Billing</button>
     </nav>
     <div class="bal">
-      <span style="color:var(--steel)">Balance</span>
-      <span class="bal-amt" id="bal">$0.00</span>
-      <button class="btn-ghost" onclick="tab('billing')">Add funds</button>
+      <span style="color:var(--steel)" id="plan-name">Free</span>
+      <span class="bal-amt"><span id="bal">20</span> tokens</span>
+      <button class="btn-ghost" onclick="tab('billing')">Plan</button>
     </div>
   </div></div>
 
@@ -420,7 +662,7 @@
           <button class="btn-ghost" onclick="runSearch()">Run search</button>
           <span class="hint" id="pr-est" style="margin:0"></span>
         </div>
-        <p class="err" id="pr-err">Not enough balance for this search. Add funds in Billing.</p>
+        <p class="err" id="pr-err"></p>
       </div>
       <div id="pr-results"></div>
     </div>
@@ -516,6 +758,8 @@
         </div>
       </div>
 
+      <div id="outreach-gate"></div>
+
       <div class="panel" style="border-left:3px solid var(--green)">
         <h3>Nothing sends without you</h3>
         <p class="ph" style="margin:0">Every touch waits for your approval. It goes out under your own name, replies come to you, and Direct Shipper never appears in the thread. Unlimited sends on any paid plan &mdash; no per-seat fee and no per-mailbox fee.</p>
@@ -529,7 +773,7 @@
 
       <div class="panel">
         <h3>Sequence</h3>
-        <p class="ph">The touches in order, across whatever you have connected. A reply stops everything after it.</p>
+        <p class="ph" id="seq-sub"></p>
         <ol class="seq" id="seq-list"></ol>
       </div>
 
@@ -539,7 +783,7 @@
         <div class="chan-tabs" id="draft-tabs"></div>
         <div id="draft-box"></div>
         <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap">
-          <button class="btn" onclick="flashMsg('Approved. The rest of the sequence is scheduled.')">Approve &amp; send</button>
+          <button class="btn" onclick="approveSend()">Approve &amp; send</button>
           <button class="btn-ghost" onclick="flashMsg('Draft opened for editing.')">Edit</button>
           <button class="btn-ghost" onclick="flashMsg('Rewritten with a shorter opener.')">Rewrite shorter</button>
         </div>
@@ -609,6 +853,13 @@
       </div>
 
       <div class="panel">
+        <h3>Where the data comes from</h3>
+        <p class="ph">Some of it is yours. Some we buy and pass along. You should be able to tell which is which on any figure you see.</p>
+        <div class="srcgrid" id="src-grid" style="margin-top:18px"></div>
+        <div class="fall" id="waterfalls"></div>
+      </div>
+
+      <div class="panel">
         <h3>TMS</h3>
         <p class="ph">Pull load history straight from your TMS instead of parsing documents. Cleaner and complete.</p>
         <div style="display:flex;gap:10px;flex-wrap:wrap">
@@ -629,50 +880,51 @@
     <div class="pane" id="p-billing">
       <div class="pane-h">
         <div>
-          <h2>Billing</h2>
-          <p>Prepaid balance. Spend it per record, no subscription.</p>
+          <h2>Plan &amp; tokens</h2>
+          <p>One token, one answer. Nothing charged when we come back empty-handed.</p>
         </div>
       </div>
+
+      <div class="panel" id="tok-status"></div>
+
       <div class="panel">
-        <h3>Add funds</h3>
-        <p class="ph">Deposit more and the bonus credit is applied immediately.</p>
-        <div class="tiers" id="tiers"></div>
-        <div class="toggle" onclick="toggleReload()">
-          <span class="sw" id="sw-reload"><i></i></span>
-          <span>Reload $100 automatically when my balance falls below $25</span>
+        <h3>Your plan</h3>
+        <p class="ph">Change any month. Monthly tokens roll over for 12 months; extra tokens never expire. Unlimited users on every paid plan.</p>
+        <div class="plans" id="plan-list"></div>
+      </div>
+
+      <div class="panel">
+        <h3>Extra tokens</h3>
+        <div id="pack-box"></div>
+      </div>
+
+      <div class="panel">
+        <h3>Daily cap</h3>
+        <p class="ph">A hard ceiling so a big search cannot run away with your month.</p>
+        <div style="max-width:240px">
+          <label for="cap">Maximum tokens per day</label>
+          <input type="text" id="cap" value="25" onchange="setCap(this.value)">
         </div>
-        <div style="margin-top:20px;display:flex;gap:12px;align-items:center;flex-wrap:wrap">
-          <button class="btn btn-lg" onclick="deposit()">Add funds</button>
-          <span class="hint" id="dep-note" style="margin:0"></span>
+        <p class="hint" id="cap-note">Direct Shipper stops spending after 25 tokens in a day and tells you.</p>
+      </div>
+
+      <div class="grid2">
+        <div class="panel">
+          <h3>What a token buys</h3>
+          <table class="ratetbl" id="rate-list"></table>
+          <p class="hint">A shipper you have never heard of, with the transportation manager's name, LinkedIn, email and phone, runs you 5 tokens.</p>
+        </div>
+        <div class="panel">
+          <h3>Never costs a token</h3>
+          <table class="ratetbl" id="free-list"></table>
         </div>
       </div>
-      <div class="panel">
-        <h3>Spending cap</h3>
-        <p class="ph">A hard ceiling so a bad script or a big search can't drain your balance.</p>
-        <div style="max-width:220px"><label for="cap">Maximum per day</label><input type="text" id="cap" value="$50.00"></div>
-      </div>
-      <div class="panel">
-        <h3>Rate card</h3>
-        <table class="ratecard" style="border:none">
-          <thead><tr><th>Record</th><th style="text-align:right">Charge</th></tr></thead>
-          <tbody>
-            <tr style="cursor:default"><td>Rate con parsing, load creation, export</td><td style="text-align:right" class="num">Free</td></tr>
-            <tr style="cursor:default"><td>Shipper and facility identification</td><td style="text-align:right" class="num">Free</td></tr>
-            <tr style="cursor:default"><td>Broker authority and double-brokering check</td><td style="text-align:right" class="num">Free</td></tr>
-            <tr style="cursor:default"><td>Observed lanes at a facility</td><td style="text-align:right" class="num">$1.50</td></tr>
-            <tr style="cursor:default"><td>Monthly volume and seasonality</td><td style="text-align:right" class="num">$1.00</td></tr>
-            <tr style="cursor:default"><td>Verified contact</td><td style="text-align:right" class="num">$2.50</td></tr>
-            <tr style="cursor:default"><td>What the shipper paid on a lane</td><td style="text-align:right" class="num">$2.00</td></tr>
-            <tr style="cursor:default"><td>Prospecting result</td><td style="text-align:right" class="num">$0.50</td></tr>
-            <tr style="cursor:default"><td>No result found</td><td style="text-align:right" class="num">$0.00</td></tr>
-          </tbody>
-        </table>
-      </div>
+
       <div class="panel">
         <h3>Usage</h3>
         <table style="border:none">
-          <thead><tr><th>When</th><th>What</th><th style="text-align:right">Charge</th><th style="text-align:right">Balance after</th></tr></thead>
-          <tbody id="log-body"><tr style="cursor:default"><td colspan="4" style="color:var(--faint)">Nothing charged yet.</td></tr></tbody>
+          <thead><tr><th>When</th><th>What</th><th style="text-align:right">Cost</th><th style="text-align:right">Left</th></tr></thead>
+          <tbody id="log-body"></tbody>
         </table>
       </div>
     </div>
