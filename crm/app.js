@@ -6,10 +6,18 @@
   const STORAGE_KEY = 'holography.crm.v1';
   const MIN = 60 * 1000, HOUR = 60 * MIN, DAY = 24 * HOUR;
 
-  const STAGES = ['Discovery', 'Qualified', 'Proposal', 'Negotiation', 'Won', 'Lost'];
+  let STAGES = ['Discovery', 'Qualified', 'Proposal', 'Negotiation', 'Won', 'Lost'];
+  const TOOLS = {
+    'contacts.read': 'Read contacts', 'contacts.write': 'Create and update contacts',
+    'companies.read': 'Read companies', 'companies.write': 'Create and update companies',
+    'opportunities.read': 'Read opportunities', 'opportunities.write': 'Update opportunities',
+    'meetings.read': 'Read meeting transcripts and summaries', 'knowledge.write': 'Write Knowledge notes',
+    'review.write': 'Add items to For review', 'tasks.write': 'Create tasks',
+    'email.send': 'Send email as you', 'slack.post': 'Post to Slack', 'support.write': 'Update support tickets', 'http.fetch': 'Call external services',
+  };
   const LEAD_STATUSES = ['New', 'MQL', 'SQL', 'Nurture', 'Converted', 'Disqualified'];
   const SEGMENTS = ['SMB', 'Mid-market', 'Enterprise'];
-  const TRIGGERS = ['Webhook received', 'Meeting updated', 'Contact created', 'Account created', 'Opportunity created', 'Opportunity updated', 'Schedule'];
+  const TRIGGERS = ['Webhook received', 'Meeting updated', 'Contact created', 'Account created', 'Opportunity created', 'Opportunity updated', 'Schedule', 'On demand'];
   const SOURCES = ['Cal.com demo', 'LinkedIn form', 'Outbound', 'Referral', 'Inbound', 'YC S26 Demo Day', 'Meeting invite'];
   const SIZES = ['1-10', '11-50', '51-200', '201-500', '501-1000', '1001+'];
   const FUNDING = ['Bootstrapped', 'Pre-seed', 'Seed', 'Series A', 'Series B', 'Series C', 'Public'];
@@ -123,11 +131,21 @@
     } catch (e) { /* fall through to seed */ }
     return window.LF_SEED(Date.now());
   }
+  function migrate(st) {
+    const seed = window.LF_SEED(Date.now());
+    const fill = (obj, defaults) => { Object.keys(defaults).forEach((k) => { if (obj[k] === undefined) obj[k] = defaults[k]; }); };
+    fill(st.settings, seed.settings);
+    ['sequences', 'imports', 'apiKeys', 'secrets', 'activity'].forEach((k) => { if (!st[k]) st[k] = seed[k] || []; });
+    st.automations.forEach((a) => { if (!a.permissions) a.permissions = seed.automations[0].permissions.slice(0, 2).map((x) => ({ ...x })); if (!a.updatedAt) a.updatedAt = a.createdAt; a.runLog.forEach((r) => { if (!r.steps) r.steps = a.steps.map((name) => ({ name, status: r.status === 'failed' ? 'failed' : 'success', output: '' })); }); });
+    st.skills.forEach((sk, i) => { const d = seed.skills.find((x) => x.id === sk.id) || {}; if (!sk.instructions) sk.instructions = d.instructions || sk.description; if (!sk.kind) sk.kind = d.kind || 'custom'; });
+    if (st.settings.stages) STAGES = st.settings.stages;
+    return st;
+  }
   function save() {
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(S)); } catch (e) { /* storage may be unavailable */ }
   }
   function resetAll() {
-    S = window.LF_SEED(Date.now());
+    S = migrate(window.LF_SEED(Date.now()));
     S.settings.onboarded = true;
     save();
   }
@@ -190,6 +208,7 @@
           ${navItem('#/companies', icons.building, 'Companies')}
           ${navItem('#/opportunities', icons.target, 'Opportunities')}
           ${navItem('#/meetings', icons.video, 'Meetings')}
+          ${navItem('#/sequences', icons.send, 'Sequences')}
         </div>
         <div class="nav-section">
           <div class="nav-section-title"><span>Favorites</span><button class="icon-btn" data-action="new-list" data-section="favorites" title="New list">${icons.plus}</button></div>
@@ -261,7 +280,7 @@
     const cls = { New: 'gray', MQL: 'blue', SQL: 'purple', Nurture: 'amber', Converted: 'green', Disqualified: 'red' }[st] || 'gray';
     return `<span class="chip ${cls}">${esc(st)}</span>`;
   };
-  const statusChip = (s) => `<span class="chip ${s === 'Active' ? 'green' : 'gray'}">${esc(s)}</span>`;
+  const statusChip = (s) => `<span class="chip ${s === 'Active' ? 'green' : s === 'Draft' ? 'amber' : 'gray'}">${esc(s)}</span>`;
 
   /* ---------- Topbar ---------- */
   function topbar(crumb, actions) {
@@ -405,9 +424,14 @@
   function pageSkills() {
     return topbar(crumb(icons.cube, 'Skills'), `<button class="btn" data-action="new-skill">${icons.plus} New skill</button>`) + `
       <div class="content"><div class="content-inner">
-        <p class="muted" style="margin-bottom:16px">Reusable capabilities the assistant can run from chat or inside automations.</p>
-        <div class="list">
-          ${S.skills.map((s) => `<div class="list-row" style="padding:12px 10px;border:1px solid var(--border);border-radius:8px;margin-bottom:6px">${icons.cube}<span class="grow" style="white-space:normal"><span style="font-weight:500">${esc(s.name)}</span><br><span class="sub">${esc(s.description)}</span></span><span class="sub nowrap">${s.uses} uses</span><button class="switch ${s.enabled ? 'on' : ''}" data-action="toggle-skill" data-id="${s.id}" title="${s.enabled ? 'Enabled' : 'Disabled'}"></button></div>`).join('')}
+        <p class="muted" style="margin-bottom:16px">Reusable playbooks. Run one against your data now, or ask for it in chat. Automations can call them as steps.</p>
+        <div class="skill-grid">
+          ${S.skills.map((sk) => `<div class="card skill ${sk.enabled ? '' : 'off'}">
+            <div class="skill-head">${icons.cube}<span class="grow" style="font-weight:600">${esc(sk.name)}</span><button class="switch ${sk.enabled ? 'on' : ''}" data-action="toggle-skill" data-id="${sk.id}" title="${sk.enabled ? 'Enabled' : 'Disabled'}"></button></div>
+            <p class="muted" style="margin:6px 0 10px">${esc(sk.description)}</p>
+            <div class="faint" style="margin-bottom:10px">${sk.uses} runs${sk.lastRun ? ' · last ' + timeAgo(sk.lastRun) : ''}${sk.builtIn ? ' · built-in' : ''}</div>
+            <div style="display:flex;gap:6px"><button class="btn primary sm" data-action="run-skill" data-id="${sk.id}" ${sk.enabled ? '' : 'disabled'}>${icons.play} Run</button><button class="btn sm" data-action="edit-skill" data-id="${sk.id}">Customize</button>${sk.builtIn ? '' : `<button class="btn ghost sm danger" data-action="delete-skill" data-id="${sk.id}">${icons.trash}</button>`}</div>
+          </div>`).join('')}
         </div>
       </div></div>`;
   }
@@ -419,12 +443,14 @@
       { key: 'name', label: 'Name', icon: icons.flow, cls: 'name', render: (a) => `${icons.flow}${esc(a.name)}` },
       { key: 'status', label: 'Status', icon: icons.status, render: (a) => statusChip(a.status) },
       { key: 'trigger', label: 'Triggers', icon: icons.zap, render: (a) => `${esc(a.trigger)}${a.extraTriggers ? ` <span class="chip gray">+${a.extraTriggers}</span>` : ''}` },
-      { key: 'lastRun', label: 'Last run', icon: icons.clock, render: (a) => timeAgo(a.lastRun), sortValue: (a) => -(a.lastRun || 0) },
-      { key: 'runs', label: 'Runs', render: (a) => a.runs.toLocaleString() },
+      { key: 'lastRun', label: 'Last run', icon: icons.play, render: (a) => timeAgo(a.lastRun), sortValue: (a) => -(a.lastRun || 0) },
+      { key: 'lastFailed', label: 'Last failure', icon: icons.warn, render: (a) => a.lastFailed ? timeAgo(a.lastFailed) : '', sortValue: (a) => -(a.lastFailed || 0) },
+      { key: 'runs', label: 'Runs', icon: icons.check, render: (a) => a.runs.toLocaleString() },
       { key: 'createdBy', label: 'Created by', icon: icons.user, render: (a) => `${avatarHtml(userName(a.createdBy))}${esc(userName(a.createdBy))}`, text: (a) => userName(a.createdBy) },
+      { key: 'updatedAt', label: 'Last edited', icon: icons.note, render: (a) => timeAgo(a.updatedAt), sortValue: (a) => -(a.updatedAt || 0) },
     ];
     const list = table({ key: 'automations', noun: 'automations', nounSingular: 'automation', columns: cols, rows: S.automations, rowHref: (a) => '#/automations/' + a.id, selectedId: sel && sel.id, defaultSort: { key: 'lastRun', dir: 1 } });
-    return topbar(crumb(icons.flow, 'Automations'), `<button class="btn" data-action="new-automation">${icons.plus} New automation</button>${createInChat()}`) + `
+    return topbar(crumb(icons.flow, 'Automations'), `<button class="btn" data-action="new-automation">${icons.plus} New automation</button><button class="btn primary" data-action="start-automation-flow">${icons.sparkle} Create in chat</button>`) + `
       <div class="content">${list}</div>
       ${sel ? automationPanel(sel) : ''}`;
   }
@@ -436,8 +462,7 @@
     <div class="panel">
       <div class="panel-header">
         <div class="crumb">${icons.flow}<span class="truncate">${esc(a.name)}</span><button class="icon-btn" data-action="automation-menu" data-id="${a.id}">${icons.dots}</button></div>
-        <button class="btn ghost sm" data-action="run-automation" data-id="${a.id}">${icons.play} Run now</button>
-        <button class="btn ghost sm" data-action="toggle-automation" data-id="${a.id}">${a.status === 'Active' ? icons.pause + ' Pause' : icons.play + ' Resume'}</button>
+        ${automationButtons(a, 'ghost sm')}
         <a class="icon-btn" href="#/automations/${a.id}/full" title="Open full page">${icons.external}</a>
         <button class="icon-btn" data-action="close-panel">${icons.x}</button>
       </div>
@@ -455,8 +480,10 @@
           <div class="k">${icons.shield} Run protection</div><div class="v"><button class="switch ${a.runProtection ? 'on' : ''}" data-action="toggle-run-protection" data-id="${a.id}"></button></div>
           <div class="k">${icons.coin} Credits</div><div class="v">${a.credits} per run avg</div>
           <div class="k">${icons.user} Created by</div><div class="v">${avatarHtml(userName(a.createdBy))}${esc(userName(a.createdBy))}</div>
-          <div class="k">${icons.calendar} Created</div><div class="v">${fmtDate(a.createdAt)}</div>
+          <div class="k">${icons.calendar} Created</div><div class="v">${fmtDate(a.createdAt)}${a.builtInChat ? ' <span class="chip gray">Built in chat</span>' : ''}</div>
+          <div class="k">${icons.note} Last edited</div><div class="v">${timeAgo(a.updatedAt)}</div>
         </div>
+        ${a.status === 'Draft' ? `<div class="callout">${icons.shield}<div><b>Draft.</b> Grant the permissions below, run a test, then activate. Every step reasons over the full customer record (company, contacts, meetings, notes), not just the trigger payload.</div></div>` : ''}
         <div class="tabs">
           <button class="${tab === 'overview' ? 'active' : ''}" data-action="tab" data-tab="au:${a.id}" data-value="overview">Overview</button>
           <button class="${tab === 'runs' ? 'active' : ''}" data-action="tab" data-tab="au:${a.id}" data-value="runs">Runs</button>
@@ -472,11 +499,14 @@
             <textarea class="prose" style="width:100%;min-height:120px;resize:vertical;background:transparent;border:1px solid transparent;border-radius:6px;padding:6px 8px;margin-left:-8px;font-family:var(--font)" data-edit="automations:${a.id}:description" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='transparent'">${esc(a.description)}</textarea></div>
           <div class="section"><div class="section-title">Triggers</div>
             <div class="list">${triggers.map((t) => `<div class="list-row">${icons.zap}<span class="grow">${esc(t)}</span>${t === 'Schedule' ? `<span class="sub">${esc(a.cadence)}</span>` : '<span class="sub">Event</span>'}</div>`).join('')}</div></div>
-          <div class="section"><div class="section-title">Steps</div>
+          <div class="section"><div class="section-title"><span>Steps</span><button class="btn ghost sm" data-action="edit-steps" data-id="${a.id}">Edit</button></div>
             <div class="steps">${a.steps.map((s) => `<div class="step">${esc(s)}</div>`).join('')}</div></div>
+          <div class="section"><div class="section-title"><span>Permissions</span>${allGranted(a) ? '<span class="chip green">All granted</span>' : `<button class="btn sm" data-action="grant-all" data-id="${a.id}">Grant all</button>`}</div>
+            <div class="list">${a.permissions.map((p) => `<div class="list-row">${icons.shield}<span class="grow">${esc(TOOLS[p.tool] || p.tool)}<br><span class="sub mono">${esc(p.tool)}</span></span><button class="switch ${p.granted ? 'on' : ''}" data-action="toggle-permission" data-id="${a.id}" data-tool="${p.tool}"></button></div>`).join('')}</div>
+            <div class="faint" style="margin-top:8px">The agent asks for these before a test or activation. Revoking one pauses the automation.</div></div>
         ` : `
           <div class="section"><div class="section-title"><span>Recent runs</span><span>${fails ? `<span class="chip red">${fails} failed</span>` : '<span class="chip green">All passing</span>'}</span></div>
-            ${a.runLog.slice().sort((x, y) => y.ts - x.ts).map((r) => `<div class="run-row"><span class="status"><span class="dot-s ${r.status}"></span>${r.status === 'success' ? 'Success' : 'Failed'}</span><span class="muted">${fmtDateTime(r.ts)}${r.note ? ' · ' + esc(r.note) : ''}</span><span class="muted">${(r.durationMs / 1000).toFixed(1)}s</span><span class="muted">${r.credits} cr</span></div>`).join('') || '<div class="empty">No runs yet.</div>'}
+            ${a.runLog.slice().sort((x, y) => y.ts - x.ts).map((r) => runRow(a, r)).join('') || '<div class="empty">No runs yet. Use "Test run" to try it on real data.</div>'}
           </div>`}`;
   }
 
@@ -776,12 +806,13 @@
     if (chat && chat.unread) { chat.unread = false; save(); }
     const suggestions = ['Create a dashboard using my pipeline data', 'Draft a recap email for my last call', 'Which opportunities have no next step?', 'Create contact Jane Doe at Bluefin Analytics', 'Show me SQL contacts', 'Create an automation that notifies me when a deal is Won'];
     const body = chat ? `<div class="chat-inner">${chat.messages.map((m) => `<div class="msg ${m.role}"><span class="who">${m.role === 'user' ? avatarHtml(me().name) : `<span class="avatar" style="background:var(--text);color:var(--bg-elev)">✦</span>`}</span><div class="body">${m.role === 'user' ? esc(m.text) : `<div class="md">${md(m.text)}</div>`}</div></div>`).join('')}</div>`
-      : `<div class="chat-empty"><h2>What do you want to do?</h2><p class="muted">Ask about your pipeline, create records, draft emails, or set up automations.</p></div>`;
+      : `<div class="chat-empty"><h2>What do you want to do?</h2><p class="muted">Ask about your pipeline, create records, draft emails, or set up automations.</p><div style="display:flex;gap:8px;justify-content:center;margin-top:18px;flex-wrap:wrap"><button class="btn" data-action="start-automation-flow">${icons.cube} Create automation</button><button class="btn" data-action="suggest" data-text="Build pipeline report">${icons.cube} Build pipeline report</button><button class="btn" data-action="suggest" data-text="Find lookalikes">${icons.cube} Find lookalikes</button></div></div>`;
     return topbar(crumb(icons.chat, chat ? chat.title : 'New chat'), chat ? `<button class="btn ghost danger" data-action="delete-chat" data-id="${chat.id}">${icons.trash}</button>` : '') + `
       <div class="content" style="display:flex;flex-direction:column;overflow:hidden">
         <div class="chat">
           <div class="chat-messages" id="chat-messages">${body}</div>
           <div class="chat-composer">
+            ${chat && chat.flow ? `<div class="chat-suggest"><span class="chip amber">Building an automation · step ${chat.flow.step} of 3</span><button data-action="suggest" data-text="cancel">Cancel</button></div>` : ''}
             ${!chat || chat.messages.length < 2 ? `<div class="chat-suggest">${suggestions.map((s) => `<button data-action="suggest" data-text="${esc(s)}">${esc(s)}</button>`).join('')}</div>` : ''}
             <form data-form="chat" data-id="${chat ? chat.id : 'new'}"><textarea name="text" rows="1" placeholder="Ask anything, or type / for commands…" autofocus>${esc(ui.chatDraft)}</textarea><button class="btn primary" type="submit" title="Send">${icons.send}</button></form>
           </div>
@@ -798,23 +829,6 @@
     ];
     return `<div class="options">${opts.map((o) => `<div class="option ${selected === o.v ? 'selected' : ''}" data-action="pick-recording" data-value="${o.v}"><div class="ot"><h3>${esc(o.t)}${o.rec ? '<span class="chip blue">Recommended</span>' : ''}</h3><p>${esc(o.d)}</p></div><span class="radio"></span></div>`).join('')}</div>`;
   }
-  function pageSettings() {
-    const user = me();
-    return topbar(crumb(icons.settings, 'Settings')) + `
-      <div class="content"><div class="content-inner narrow"><div class="settings-grid">
-        <div class="card"><h3>Profile</h3>
-          <div class="meta" style="grid-template-columns:120px 1fr;margin-bottom:0">
-            <div class="k">Name</div><div class="v">${textEdit('users', user.id, 'name', user.name)}</div>
-            <div class="k">Email</div><div class="v">${textEdit('users', user.id, 'email', user.email)}</div>
-            <div class="k">Workspace</div><div class="v"><input type="text" data-edit="settings::workspace" value="${esc(S.settings.workspace)}"></div>
-            <div class="k">Theme</div><div class="v"><select data-edit="settings::theme"><option value="dark" ${S.settings.theme === 'dark' ? 'selected' : ''}>Dark</option><option value="light" ${S.settings.theme === 'light' ? 'selected' : ''}>Light</option></select></div>
-          </div>
-        </div>
-        <div class="card"><h3>Call recording</h3><p class="muted" style="margin-bottom:12px">The assistant joins your meetings to generate summaries, follow-ups, and record updates based on your conversations.</p>${recordingOptions(S.settings.recording)}</div>
-        <div class="card"><h3>Team</h3><div class="list">${S.users.map((u) => `<div class="list-row">${avatarHtml(u.name)}<span class="grow">${esc(u.name)}<br><span class="sub">${esc(u.email)}</span></span><span class="chip gray">${esc(u.role)}</span></div>`).join('')}</div></div>
-        <div class="card"><h3>Data</h3><p class="muted" style="margin-bottom:10px">Everything is stored in this browser. Export a JSON backup, or reset to the sample workspace.</p><div style="display:flex;gap:8px"><button class="btn" data-action="export">${icons.download} Export JSON</button><button class="btn danger" data-action="reset">${icons.refresh} Reset to sample data</button></div></div>
-      </div></div></div>`;
-  }
   function pageOnboarding() {
     return `<div class="onboard"><div class="onboard-card">
       <h1>Record your calls with ${esc(S.settings.workspace)}</h1>
@@ -829,7 +843,7 @@
   const pages = {
     'up-next': pageUpNext, review: pageReview, knowledge: pageKnowledge, skills: pageSkills, automations: pageAutomations,
     contacts: pageContacts, companies: pageCompanies, opportunities: pageOpportunities, meetings: pageMeetings,
-    lists: pageList, chat: pageChat, settings: pageSettings,
+    lists: pageList, chat: pageChat, settings: pageSettings, sequences: pageSequences,
   };
   function render() {
     document.documentElement.dataset.theme = S.settings.theme;
@@ -839,7 +853,8 @@
     if (route.page === 'automations' && route.sub === 'full') page = pageAutomationFull;
     const scrollEl = $('.content');
     const scrollTop = scrollEl ? scrollEl.scrollTop : 0;
-    app.innerHTML = `<aside class="sidebar ${ui.sidebarOpen ? 'open' : ''}">${renderSidebar()}</aside><main class="main">${page()}</main>`;
+    const side = route.page === 'settings' ? renderSettingsSidebar() : renderSidebar();
+    app.innerHTML = `<aside class="sidebar ${ui.sidebarOpen ? 'open' : ''}">${side}</aside><main class="main">${page()}</main>`;
     document.title = `${esc(S.settings.workspace)} CRM`;
     if (ui.keepScroll) { const el = $('.content'); if (el) el.scrollTop = scrollTop; ui.keepScroll = false; }
     if (ui.focusSearch) { const inp = $(`[data-search="${ui.focusSearch}"]`); if (inp) { inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length); } ui.focusSearch = null; }
@@ -850,7 +865,7 @@
   function pageAutomationFull() {
     const a = byId('automations', route.id);
     if (!a) return notFound('Automation');
-    return topbar(crumb(icons.flow, 'Automations', a.name), `<button class="btn" data-action="run-automation" data-id="${a.id}">${icons.play} Run now</button><button class="btn" data-action="toggle-automation" data-id="${a.id}">${a.status === 'Active' ? icons.pause + ' Pause' : icons.play + ' Resume'}</button><a class="btn ghost" href="#/automations/${a.id}">Open as panel</a>`) +
+    return topbar(crumb(icons.flow, 'Automations', a.name), `${automationButtons(a, '')}<a class="btn ghost" href="#/automations/${a.id}">Open as panel</a>`) +
       `<div class="content"><div class="content-inner narrow">${automationBody(a)}</div></div>`;
   }
   const rerender = (keepScroll) => { ui.keepScroll = keepScroll !== false; render(); };
@@ -1059,7 +1074,7 @@
     return `Here is a snapshot of your open pipeline.\n\n| Stage | Deals | Amount |\n|---|---|---|\n${byStage.join('\n')}\n\n| Owner | Deals | Amount |\n|---|---|---|\n${byOwner.join('\n')}\n\nOpen pipeline totals **${fmtMoney(total)}** across ${open.length} deals. Won to date: **${fmtMoney(won.reduce((a, o) => a + o.amount, 0))}** (${won.length} deals).` +
       (risks.length ? `\n\n**Needs attention**\n${risks.map((o) => `- ${oppLink(o)}: ${!o.nextStep ? 'no next step' : o.closeDate < Date.now() ? 'close date has passed' : 'not yet qualified'}`).join('\n')}` : '');
   }
-  function respond(text) {
+  function respond(text, chat) {
     const t = text.trim();
     const l = t.toLowerCase();
     let m;
@@ -1082,13 +1097,18 @@
       const o = createOpportunity({ name: m[1], companyId: co ? co.id : null, amount });
       return `Created opportunity ${oppLink(o)}${co ? ` for ${coLink(co)}` : ''} in **Discovery**${amount ? ` at ${fmtMoney(amount)}` : ''}.`;
     }
+    if (/^(?:create|build|new) (?:an? |new )?automation\.?$/i.test(t)) { if (chat) { chat.flow = { kind: 'automation', step: 1, answers: {} }; } return FLOW_INTRO; }
+    if ((m = t.match(/^(?:run|use) (?:the )?(?:skill )?(.+?)(?: skill)?$/i)) && S.skills.find((k) => norm(k.name) === norm(m[1]))) { return runSkill(S.skills.find((k) => norm(k.name) === norm(m[1])), {}); }
+    { const sk = S.skills.find((k) => k.enabled && norm(t) === norm(k.name)); if (sk) return runSkill(sk, {}); }
+    if (/lookalike|look-alike|similar (?:to|companies)/.test(l)) return runSkill(S.skills.find((k) => k.kind === 'lookalikes'), {});
+    if (/resurrect|lost deals|re-?engage/.test(l)) return runSkill(S.skills.find((k) => k.kind === 'resurrect'), {});
     if ((m = t.match(/^create (?:a |an |new )?automation (?:that |to |which )?(.+)$/i))) {
       const d = m[1];
       const trigger = /won|stage|opportunit|deal/i.test(d) ? 'Opportunity updated' : /contact|lead/i.test(d) ? 'Contact created' : /meeting|call/i.test(d) ? 'Meeting updated' : /compan|account/i.test(d) ? 'Account created' : /daily|weekly|every/i.test(d) ? 'Schedule' : 'Webhook received';
       const a = createAutomation({ name: d.charAt(0).toUpperCase() + d.slice(1), trigger, description: `Created from chat: ${t}` });
       return `Created automation [${a.name}](#/automations/${a.id}) triggered by **${trigger}**. It is active with run protection on. Open it to edit the steps.`;
     }
-    if (/dashboard|pipeline|forecast|how (?:is|are) (?:my|the) (?:deals|pipeline)/.test(l)) return pipelineReport();
+    if (/dashboard|pipeline|forecast|how (?:is|are) (?:my|the) (?:deals|pipeline)/.test(l)) return runSkill(S.skills.find((k) => k.kind === 'pipeline'), {});
     if (/no next step|stale|slipp|at risk/.test(l)) {
       const items = openOpps().filter((o) => !o.nextStep || o.closeDate < Date.now());
       return items.length ? `${items.length} open opportunit${items.length === 1 ? 'y needs' : 'ies need'} attention:\n${items.map((o) => `- ${oppLink(o)} (${fmtMoney(o.amount)}, ${o.stage}): ${!o.nextStep ? 'no next step' : 'close date has passed'}`).join('\n')}` : 'Every open opportunity has a next step and a future close date.';
@@ -1155,7 +1175,7 @@
       S.chats.unshift(chat);
     }
     chat.messages.push({ role: 'user', text, ts: Date.now() });
-    const reply = respond(text);
+    const reply = chat.flow ? flowRespond(chat, text) : respond(text, chat);
     chat.messages.push({ role: 'assistant', text: reply, ts: Date.now() + 1 });
     save();
     if (route.page !== 'chat' || route.id !== chat.id) go('#/chat/' + chat.id); else render();
@@ -1270,6 +1290,35 @@
     'finish-onboarding': () => { S.settings.onboarded = true; save(); go('#/up-next'); render(); },
     'export': () => { const blob = new Blob([JSON.stringify(S, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'crm-export.json'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000); },
     'reset': () => { if (!confirm('Reset everything to the sample workspace? Your changes will be lost.')) return; resetAll(); toast('Workspace reset'); go('#/up-next'); render(); },
+    'start-automation-flow': () => { const chat = { id: uid('ch'), title: 'Create automation', createdAt: Date.now(), messages: [{ role: 'assistant', text: FLOW_INTRO, ts: Date.now() }], flow: { kind: 'automation', step: 1, answers: {} } }; S.chats.unshift(chat); save(); go('#/chat/' + chat.id); },
+    'toggle-permission': (el) => { const a = byId('automations', el.dataset.id); if (!a) return; const p = a.permissions.find((x) => x.tool === el.dataset.tool); if (!p) return; p.granted = !p.granted; if (!p.granted && a.status === 'Active') { a.status = 'Paused'; toast('Paused: a required permission was revoked'); } a.updatedAt = Date.now(); save(); rerender(); },
+    'grant-all': (el) => { const a = byId('automations', el.dataset.id); if (!a) return; a.permissions.forEach((p) => { p.granted = true; }); a.updatedAt = Date.now(); save(); toast('Permissions granted'); rerender(); },
+    'activate-automation': (el) => { const a = byId('automations', el.dataset.id); if (!a) return; if (!allGranted(a)) { toast('Grant all permissions first'); return; } a.status = 'Active'; a.updatedAt = Date.now(); save(); toast(`"${a.name}" is active`); rerender(); },
+    'test-automation': (el) => { const a = byId('automations', el.dataset.id); if (!a) return; if (!allGranted(a)) { toast('Grant all permissions before testing'); return; } const r = executeRun(a, 'Test'); save(); ui.tab['au:' + a.id] = 'runs'; ui.expandRun = r.id; toast(r.status === 'failed' ? 'Test run failed, see the run log' : 'Test run finished'); rerender(); },
+    'expand-run': (el) => { ui.expandRun = ui.expandRun === el.dataset.id ? null : el.dataset.id; rerender(); },
+    'retry-run': (el) => { const a = byId('automations', el.dataset.auto); if (!a) return; const r = executeRun(a, 'Retry'); ui.expandRun = r.id; save(); rerender(); },
+    'edit-steps': (el) => { const a = byId('automations', el.dataset.id); if (!a) return; openModal({ title: 'Edit steps', form: true, submitLabel: 'Save', body: F.textarea('steps', 'One step per line', a.steps.join('\n')) + F.select('trigger', 'Trigger', TRIGGERS, a.trigger), onSubmit: (d) => { a.steps = d.steps.split('\n').map((x) => x.trim()).filter(Boolean); a.trigger = d.trigger; a.permissions = mergePermissions(a.permissions, permissionsForText(a.steps.join(' ') + ' ' + a.description)); a.updatedAt = Date.now(); rerender(); } }); },
+    'run-skill': (el) => { const sk = byId('skills', el.dataset.id); if (!sk) return; skillParamsThen(sk, (params) => { const out = runSkill(sk, params); const chat = { id: uid('ch'), title: sk.name, createdAt: Date.now(), messages: [{ role: 'user', text: `Run skill: ${sk.name}`, ts: Date.now() }, { role: 'assistant', text: out, ts: Date.now() + 1 }] }; S.chats.unshift(chat); save(); go('#/chat/' + chat.id); }); },
+    'edit-skill': (el) => { const sk = byId('skills', el.dataset.id); if (!sk) return; openModal({ title: 'Customize skill', form: true, submitLabel: 'Save', body: F.text('name', 'Name', sk.name, 'required') + F.textarea('description', 'Description', sk.description) + F.textarea('instructions', 'Instructions the agent follows', sk.instructions), onSubmit: (d) => { sk.name = d.name.trim(); sk.description = d.description; sk.instructions = d.instructions; sk.updatedAt = Date.now(); rerender(); } }); },
+    'delete-skill': (el) => { const sk = byId('skills', el.dataset.id); if (!sk || !confirm(`Delete "${sk.name}"?`)) return; S.skills = S.skills.filter((x) => x.id !== sk.id); save(); rerender(); },
+    'new-sequence': () => openModal({ title: 'New sequence', form: true, body: F.text('name', 'Name', '', 'required') + F.textarea('steps', 'Steps, one per line: "email day 0 Subject" or "linkedin_invite day 5"', 'email day 0 Quick question about {{company}}\nemail day 3 Following up\nlinkedin_invite day 5') + F.select('listId', 'Enroll contacts from list', [{ v: '', t: '— None —' }].concat(S.lists.filter((x) => x.objectType === 'contact').map((x) => ({ v: x.id, t: x.name }))), ''),
+      onSubmit: (d) => { const steps = d.steps.split('\n').map((x) => x.trim()).filter(Boolean).map((line) => { const m = line.match(/^(email|linkedin_invite|linkedin_dm)\s+day\s+(\d+)\s*(.*)$/i); return m ? { type: m[1].toLowerCase(), day: Number(m[2]), subject: m[3] } : { type: 'email', day: 0, subject: line }; }); const l = d.listId ? byId('lists', d.listId) : null; const sq = { id: uid('sq'), name: d.name.trim(), status: 'Active', channel: steps.some((x) => x.type.startsWith('linkedin')) ? 'email + linkedin' : 'email', steps, enrolledIds: l ? listRows(l).map((c) => c.id) : [], sentToday: 0, createdAt: Date.now() }; S.sequences.push(sq); go('#/sequences/' + sq.id); } }),
+    'toggle-sequence': (el) => { const q = byId('sequences', el.dataset.id); if (!q) return; q.status = q.status === 'Active' ? 'Paused' : 'Active'; save(); rerender(); },
+    'enroll-list': (el) => { const q = byId('sequences', el.dataset.id); if (!q) return; openModal({ title: 'Enroll contacts', form: true, submitLabel: 'Enroll', body: F.select('listId', 'List', S.lists.filter((x) => x.objectType === 'contact').map((x) => ({ v: x.id, t: x.name })), ''), onSubmit: (d) => { const l = byId('lists', d.listId); if (!l) return; const ids = listRows(l).map((c) => c.id).filter((id) => !q.enrolledIds.includes(id)); q.enrolledIds.push(...ids); toast(`Enrolled ${ids.length} contacts`); rerender(); } }); },
+    'unenroll': (el) => { const q = byId('sequences', el.dataset.id); if (!q) return; q.enrolledIds = q.enrolledIds.filter((x) => x !== el.dataset.contact); save(); rerender(); },
+    'delete-sequence': (el) => { const q = byId('sequences', el.dataset.id); if (!q || !confirm(`Delete "${q.name}"?`)) return; S.sequences = S.sequences.filter((x) => x.id !== q.id); save(); go('#/sequences'); },
+    'invite-member': () => openModal({ title: 'Invite member', form: true, submitLabel: 'Invite', body: F.row(F.text('name', 'Name', '', 'required'), F.text('email', 'Email', '', 'required type=email')) + F.select('role', 'Role', ['Admin', 'AE', 'SDR', 'CS', 'Viewer'], 'AE'), onSubmit: (d) => { S.users.push({ id: uid('u'), name: d.name.trim(), initials: initials(d.name), email: d.email.trim(), role: d.role, invited: true }); rerender(); } }),
+    'remove-member': (el) => { const u = byId('users', el.dataset.id); if (!u || u.id === S.settings.userId || !confirm(`Remove ${u.name}?`)) return; S.users = S.users.filter((x) => x.id !== u.id); save(); rerender(); },
+    'toggle-setting': (el) => { const cur = getPath(S.settings, el.dataset.path); setPath(S.settings, el.dataset.path, !cur); save(); rerender(); },
+    'toggle-app': (el) => { const list = S.settings[el.dataset.list]; const app = list.find((x) => x.id === el.dataset.id); if (!app) return; app.connected = !app.connected; save(); toast(`${app.name} ${app.connected ? 'connected' : 'disconnected'}`); rerender(); },
+    'add-stage': () => openModal({ title: 'Add stage', form: true, submitLabel: 'Add', body: F.text('name', 'Stage name', '', 'required'), onSubmit: (d) => { const n = d.name.trim(); if (!n || STAGES.includes(n)) return; STAGES.splice(STAGES.length - 2, 0, n); S.settings.stages = STAGES; rerender(); } }),
+    'remove-stage': (el) => { const st = el.dataset.stage; if (st === 'Won' || st === 'Lost') return; if (S.opportunities.some((o) => o.stage === st)) { toast('Move opportunities out of this stage first'); return; } STAGES = STAGES.filter((x) => x !== st); S.settings.stages = STAGES; save(); rerender(); },
+    'new-api-key': () => openModal({ title: 'New API key', form: true, body: F.text('name', 'Name', '', 'required') + F.select('scope', 'Scope', ['read', 'read+write', 'webhooks'], 'read'), onSubmit: (d) => { const raw = 'hf_live_' + Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 10); S.apiKeys.push({ id: uid('ak'), name: d.name.trim(), prefix: raw.slice(0, 12), scopes: [d.scope], createdAt: Date.now(), lastUsed: null }); save(); openModal({ title: 'Copy your key', body: `<div class="modal-body"><p class="muted" style="margin-bottom:8px">This is the only time the full key is shown.</p><code class="mono" style="display:block;padding:10px;border:1px solid var(--border);border-radius:6px;background:var(--bg);word-break:break-all">${esc(raw)}</code></div>` }); } }),
+    'revoke-api-key': (el) => { const k = byId('apiKeys', el.dataset.id); if (!k || !confirm(`Revoke "${k.name}"?`)) return; S.apiKeys = S.apiKeys.filter((x) => x.id !== k.id); save(); rerender(); },
+    'new-secret': () => openModal({ title: 'New secret', form: true, body: F.text('name', 'Name (UPPER_SNAKE_CASE)', '', 'required') + F.text('value', 'Value', '', 'required type=password'), onSubmit: (d) => { S.secrets.push({ id: uid('sc'), name: d.name.trim().toUpperCase().replace(/[^A-Z0-9]+/g, '_'), updatedAt: Date.now() }); rerender(); } }),
+    'delete-secret': (el) => { const k = byId('secrets', el.dataset.id); if (!k || !confirm(`Delete ${k.name}?`)) return; S.secrets = S.secrets.filter((x) => x.id !== k.id); save(); rerender(); },
+    'import-csv': () => openModal({ title: 'Import CSV', form: true, submitLabel: 'Import', body: F.select('objectType', 'Records', [{ v: 'contact', t: 'Contacts' }, { v: 'company', t: 'Companies' }], 'contact') + F.textarea('csv', 'Paste CSV (header row first, e.g. name,email,title,company)', ''), onSubmit: (d) => importCsv(d.objectType, d.csv) }),
+    'pick-autonomy': (el) => { S.settings.agent.autonomy = el.dataset.value; save(); rerender(); },
     'modal-close': closeModal,
     'modal-backdrop': (el, e) => { if (e.target === el) closeModal(); },
     'modal-go': closeModal,
@@ -1281,7 +1330,12 @@
   function applyEdit(el) {
     const [coll, id, field] = el.dataset.edit.split(':');
     let value = el.type === 'checkbox' ? el.checked : el.value;
-    if (coll === 'settings') { S.settings[field] = value; save(); if (field === 'theme' || field === 'workspace') rerender(); return; }
+    if (coll === 'settings') {
+      if (el.type === 'number') value = value === '' ? 0 : Number(value);
+      setPath(S.settings, field, value); save();
+      if (field === 'theme' || field === 'workspace' || el.tagName === 'SELECT' || el.type === 'checkbox') rerender();
+      return;
+    }
     const obj = byId(coll, id);
     if (!obj) return;
     const prev = obj[field];
@@ -1290,7 +1344,7 @@
     else if (field === 'companyId') value = value || null;
     if (value === prev) return;
     obj[field] = value;
-    if (coll === 'knowledge') obj.updatedAt = Date.now();
+    if (coll === 'knowledge' || coll === 'automations' || coll === 'skills') obj.updatedAt = Date.now();
     if (coll === 'opportunities' && field === 'stage') {
       logActivity({ objectType: 'opportunity', objectId: id, title: `Stage changed`, text: `${prev} → ${value}` });
       if (obj.companyId) logActivity({ objectType: 'company', objectId: obj.companyId, title: `${obj.name}: ${prev} → ${value}` });
@@ -1363,9 +1417,307 @@
     runHooks('opportunity.updated', o); save(); rerender();
   });
 
+
+  /* ---------- Automations: permissions, runs, chat-built flow ---------- */
+  const allGranted = (a) => a.permissions.every((p) => p.granted);
+  function automationButtons(a, cls) {
+    const b = (act, label, icon, extra) => `<button class="btn ${cls} ${extra || ''}" data-action="${act}" data-id="${a.id}">${icon} ${label}</button>`;
+    if (a.status === 'Draft') return b('test-automation', 'Test run', icons.play) + b('activate-automation', 'Activate', icons.check, allGranted(a) ? 'primary' : '');
+    return b('run-automation', 'Run now', icons.play) + b('toggle-automation', a.status === 'Active' ? 'Pause' : 'Resume', a.status === 'Active' ? icons.pause : icons.play);
+  }
+  function permissionsForText(text) {
+    const t = text.toLowerCase();
+    const p = ['companies.read', 'contacts.read'];
+    const add = (x) => { if (!p.includes(x)) p.push(x); };
+    if (/opportunit|deal|stage|won|pipeline|arr/.test(t)) add('opportunities.read');
+    if (/meeting|call|transcript|summary/.test(t)) add('meetings.read');
+    if (/(update|set|change|move|mark).*(contact|lead status)|create contact|merge/.test(t)) add('contacts.write');
+    if (/(update|set|change|enrich|fill).*(compan|account|segment|industry)|create compan/.test(t)) add('companies.write');
+    if (/(update|set|change|move|mark).*(opportunit|deal|stage|close date|next step)/.test(t)) add('opportunities.write');
+    if (/review|propose|approve/.test(t)) add('review.write');
+    if (/email|recap|follow[- ]?up|outreach/.test(t)) add('email.send');
+    if (/slack|channel|notify|notification|ping/.test(t)) add('slack.post');
+    if (/task|reminder|to-?do/.test(t)) add('tasks.write');
+    if (/knowledge|research|note/.test(t)) add('knowledge.write');
+    if (/webhook|api|external|http|enrich|fetch/.test(t)) add('http.fetch');
+    if (/ticket|support/.test(t)) add('support.write');
+    return p;
+  }
+  const mergePermissions = (existing, tools) => tools.map((tool) => { const e = existing.find((x) => x.tool === tool); return { tool, granted: e ? e.granted : false }; });
+  function runRow(a, r) {
+    const open = ui.expandRun === r.id;
+    const label = r.status === 'success' ? 'Success' : r.status === 'failed' ? 'Failed' : 'Test';
+    return `<div class="run-row link" data-action="expand-run" data-id="${r.id}"><span class="status"><span class="dot-s ${r.status}"></span>${label}</span><span class="muted">${fmtDateTime(r.ts)} · ${esc(r.trigger || 'Event')}${r.note ? ' · ' + esc(r.note) : ''}</span><span class="muted">${(r.durationMs / 1000).toFixed(1)}s</span><span class="muted">${r.credits} cr</span></div>
+      ${open ? `<div class="run-steps">${(r.steps || []).map((st, i) => `<div class="run-step ${st.status}"><span class="n">${i + 1}</span><span class="grow"><span>${esc(st.name)}</span>${st.output ? `<br><span class="sub">${esc(st.output)}</span>` : ''}</span><span class="chip ${st.status === 'success' ? 'green' : st.status === 'failed' ? 'red' : 'gray'}">${st.status}</span></div>`).join('')}
+        ${r.status === 'failed' ? `<div style="display:flex;justify-content:flex-end;padding:8px 0 2px"><button class="btn sm" data-action="retry-run" data-auto="${a.id}">${icons.refresh} Retry</button></div>` : ''}
+        ${r.reviewIds && r.reviewIds.length ? `<div class="faint" style="padding:6px 0">Produced ${r.reviewIds.length} item${r.reviewIds.length === 1 ? '' : 's'} in <a href="#/review" style="color:var(--accent)">For review</a>.</div>` : ''}
+      </div>` : ''}`;
+  }
+  // Executes an automation end to end against real workspace data. Runs go to completion;
+  // anything that changes a record lands in For review rather than being applied directly.
+  function executeRun(a, triggerLabel) {
+    const co = S.companies.slice().sort((x, y) => y.createdAt - x.createdAt)[0];
+    const ct = co ? contactsOf(co.id)[0] : null;
+    const opp = co ? oppsOf(co.id)[0] : null;
+    const mt = S.meetings.filter((m) => m.status === 'processed').sort((x, y) => y.startsAt - x.startsAt)[0];
+    const reviewIds = [];
+    let failed = false;
+    const steps = a.steps.map((name) => {
+      if (failed) return { name, status: 'skipped', output: 'Skipped after failure' };
+      const n = name.toLowerCase();
+      if (/context|load|gather|fetch|query|read/.test(n)) return { name, status: 'success', output: `Loaded ${co ? co.name : 'record'}: ${co ? contactsOf(co.id).length : 0} contacts, ${co ? oppsOf(co.id).length : 0} opportunities, ${co ? meetingsOf(co.id).length : 0} meetings, ${S.notes.filter((x) => co && x.objectId === co.id).length} notes` };
+      if (/http|api|external|provider|webhook|website|news|enrich/.test(n) && !S.settings.connectors.some((c) => c.connected)) { failed = true; return { name, status: 'failed', output: 'No connector is connected for this step' }; }
+      if (/draft|compose|write|recap|email/.test(n) && ct) { const r = draftRecapReview(mt || { title: a.name, companyId: co.id }, ct); r.reason = `Generated by automation "${a.name}".`; r.sourceRunId = null; S.reviews.unshift(r); reviewIds.push(r.id); return { name, status: 'success', output: `Drafted email to ${ct.name} (${r.draft.split(/\s+/).length} words) using Knowledge: pricing, ICP` }; }
+      if (/propose|review/.test(n) && opp && opp.stage !== 'Won' && opp.stage !== 'Lost') { const idx = STAGES.indexOf(opp.stage); const to = STAGES[Math.min(idx + 1, STAGES.length - 3)]; if (to && to !== opp.stage) { const r = { id: uid('rv'), type: 'field_update', title: `Move ${opp.name} to ${to}`, objectType: 'opportunity', objectId: opp.id, field: 'stage', from: opp.stage, to, reason: `Proposed by automation "${a.name}".`, sourceMeetingId: mt ? mt.id : null, status: 'pending', createdAt: Date.now() }; S.reviews.unshift(r); reviewIds.push(r.id); return { name, status: 'success', output: `Proposed: ${opp.name} ${opp.stage} → ${to}` }; } return { name, status: 'success', output: 'Nothing to propose' }; }
+      if (/slack|post|notify|channel/.test(n)) return { name, status: 'success', output: S.settings.externalApps.find((x) => x.id === 'slack' && x.connected) ? `Posted to Slack: "${a.name}" for ${co ? co.name : 'record'}` : 'Slack is not connected; message queued' };
+      if (/task/.test(n) && co) { createTask({ title: `${a.name}: follow up with ${co.name}`, due: Date.now() + DAY, objectType: 'company', objectId: co.id }); return { name, status: 'success', output: `Created task for ${co.name}` }; }
+      if (/research|knowledge/.test(n) && co) { researchCompany(co, true); return { name, status: 'success', output: `Wrote Knowledge note for ${co.name}` }; }
+      if (/set|update|mark|assign|fill|merge|classify|segment/.test(n)) return { name, status: 'success', output: S.settings.agent.autonomy === 'auto' ? 'Applied change' : 'Held for review (autonomy is set to "review first")' };
+      if (/check|validate|reject|score|diff|match|find|search|wait|compare|decide/.test(n)) return { name, status: 'success', output: 'Passed' };
+      return { name, status: 'success', output: 'Done' };
+    });
+    const run = { id: uid('run'), ts: Date.now(), status: failed ? 'failed' : triggerLabel === 'Test' ? 'test' : 'success', trigger: triggerLabel, durationMs: 800 + steps.length * 650, credits: a.credits, steps, reviewIds, note: '' };
+    reviewIds.forEach((id) => { const r = byId('reviews', id); if (r) r.sourceRunId = run.id; });
+    a.runLog.unshift(run);
+    if (a.runLog.length > 40) a.runLog.length = 40;
+    if (triggerLabel !== 'Test') { a.runs += 1; a.lastRun = run.ts; if (failed) a.lastFailed = run.ts; }
+    return run;
+  }
+  const FLOW_INTRO = `I've got the automation playbook loaded. What do you want to build?\n\nTo get started, tell me:\n1. **What should happen** — the outcome (e.g. draft a follow-up email, update a field, post to Slack, create a task).\n2. **When it should run** — a record change (created/updated), a schedule, an inbound webhook, or on demand.\n3. **What it can touch** — which records it should read and which it's allowed to write.\n\nIf you give me a plain-language description of the process, I'll map it to a trigger and draft it. Start with the first one: what should happen?`;
+  function inferTrigger(text) {
+    const t = text.toLowerCase();
+    if (/webhook|inbound|form|cal\.com|booking|billing|api/.test(t)) return 'Webhook received';
+    if (/meeting|call|transcript|recorded/.test(t)) return 'Meeting updated';
+    if (/contact.*(created|new|added)|new contact|new lead/.test(t)) return 'Contact created';
+    if (/(company|account).*(created|new|added)|new (company|account)/.test(t)) return 'Account created';
+    if (/(opportunit|deal).*(created|new)|new (opportunit|deal)/.test(t)) return 'Opportunity created';
+    if (/opportunit|deal|stage|won|lost|close/.test(t)) return 'Opportunity updated';
+    if (/daily|weekly|every|each|monday|morning|schedule|hour/.test(t)) return 'Schedule';
+    if (/demand|manual|when i ask|button/.test(t)) return 'On demand';
+    return 'Webhook received';
+  }
+  function inferCadence(text) {
+    const t = text.toLowerCase();
+    const m = t.match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/);
+    const time = m ? `${m[1]}${m[2] ? ':' + m[2] : ':00'}${m[3] ? ' ' + m[3] : ''}` : '9:00';
+    if (/weekly|monday|friday|week/.test(t)) return `Weekly, ${/friday/.test(t) ? 'Friday' : 'Monday'} ${time}`;
+    if (/hour/.test(t)) return 'Hourly';
+    return `Daily, ${time}`;
+  }
+  function inferSteps(what, touch) {
+    const t = (what + ' ' + touch).toLowerCase();
+    const steps = ['Load full customer context (company, contacts, meetings, notes)'];
+    if (/check|only if|when .* is|unless|except/.test(t)) steps.push('Check conditions from the description');
+    if (/email|recap|follow[- ]?up|outreach/.test(t)) steps.push('Draft email grounded in Knowledge', 'Add draft to For review');
+    if (/slack|notify|notification|ping|channel/.test(t)) steps.push('Compose Slack message', 'Post to Slack');
+    if (/task|reminder/.test(t)) steps.push('Create task for the owner');
+    if (/update|set|change|move|mark|stage|status|field|segment/.test(t)) steps.push('Decide the new field value', 'Propose update for review');
+    if (/research|enrich|knowledge/.test(t)) steps.push('Research the account', 'Write Knowledge note');
+    if (/dedup|duplicate|merge/.test(t)) steps.push('Search for duplicates', 'Merge duplicates');
+    if (steps.length === 1) steps.push('Apply the described outcome', 'Log the result');
+    return steps;
+  }
+  function flowRespond(chat, text) {
+    const f = chat.flow;
+    const t = text.trim();
+    if (/^(cancel|stop|never ?mind|quit)$/i.test(t)) { chat.flow = null; return 'Cancelled. Nothing was created.'; }
+    if (f.step === 1) { f.answers.what = t; f.step = 2; return `Got it: **${t}**\n\nWhen should it run? For example "when a meeting is processed", "when an opportunity moves to Won", "every Monday at 8am", "when Cal.com sends a booking webhook", or "on demand".`; }
+    if (f.step === 2) { f.answers.when = t; f.step = 3; const trig = inferTrigger(t); return `I'll map that to the **${trig}** trigger${trig === 'Schedule' ? ` (${inferCadence(t)})` : ''}.\n\nLast one: what can it touch? Tell me which records it should read and which it is allowed to write, e.g. "read contacts, companies and meetings; write opportunities and send email".`; }
+    f.answers.touch = t;
+    const what = f.answers.what, when = f.answers.when;
+    const trigger = inferTrigger(when);
+    const steps = inferSteps(what, t);
+    const tools = permissionsForText(what + ' ' + t + ' ' + steps.join(' '));
+    const name = what.replace(/^(please |can you |i want (?:you )?to |automatically )/i, '').replace(/[.!]+$/, '');
+    const a = {
+      id: uid('au'), name: name.charAt(0).toUpperCase() + name.slice(1, 70), status: 'Draft', trigger, extraTriggers: 0,
+      cadence: trigger === 'Schedule' ? inferCadence(when) : 'Event', createdBy: S.settings.userId, runProtection: true, credits: +(0.1 + steps.length * 0.05).toFixed(2),
+      runs: 0, lastRun: null, lastFailed: null, description: `What should happen: ${what}\nWhen it runs: ${when}\nWhat it can touch: ${t}`,
+      steps, runLog: [], createdAt: Date.now(), updatedAt: Date.now(), permissions: tools.map((tool) => ({ tool, granted: false })), builtInChat: true,
+    };
+    S.automations.push(a);
+    chat.flow = null;
+    chat.title = a.name.length > 40 ? a.name.slice(0, 38) + '…' : a.name;
+    return `Drafted [${a.name}](#/automations/${a.id}).\n\n| | |\n|---|---|\n| Trigger | ${trigger}${trigger === 'Schedule' ? ' · ' + a.cadence : ''} |\n| Steps | ${steps.length} |\n| Status | Draft |\n\n**Steps**\n${steps.map((x, i) => `${i + 1}. ${x}`).join('\n')}\n\n**Permissions it needs before it can run**\n${tools.map((x) => `- ${TOOLS[x] || x} (\`${x}\`)`).join('\n')}\n\nOpen the automation to grant these, run a test against real data, then activate it. Every step reads the full customer context, and record changes go to For review.`;
+  }
+
+  /* ---------- Skills: runnable playbooks ---------- */
+  function skillParamsThen(sk, cb) {
+    if (sk.kind === 'outreach') return openModal({ title: sk.name, form: true, submitLabel: 'Run', body: F.select('listId', 'Contacts from list', S.lists.filter((x) => x.objectType === 'contact').map((x) => ({ v: x.id, t: x.name })), ''), onSubmit: cb });
+    if (sk.kind === 'research') return openModal({ title: sk.name, form: true, submitLabel: 'Run', body: F.select('companyId', 'Company', S.companies.map((x) => ({ v: x.id, t: x.name })), ''), onSubmit: cb });
+    cb({});
+  }
+  function runSkill(sk, params) {
+    if (!sk) return 'That skill is not available.';
+    sk.uses = (sk.uses || 0) + 1; sk.lastRun = Date.now();
+    const won = S.opportunities.filter((o) => o.stage === 'Won');
+    switch (sk.kind) {
+      case 'pipeline': return pipelineReport();
+      case 'lookalikes': {
+        const customers = new Set(won.map((o) => o.companyId));
+        const profile = { industry: {}, segment: {}, funding: {}, size: {} };
+        won.forEach((o) => { const c = byId('companies', o.companyId); if (!c) return; ['industry', 'segment', 'funding', 'size'].forEach((k) => { profile[k][c[k]] = (profile[k][c[k]] || 0) + 1; }); });
+        const scored = S.companies.filter((c) => !customers.has(c.id) && c.arr === 0).map((c) => { const why = []; let score = 0; ['segment', 'industry', 'funding', 'size'].forEach((k) => { if (profile[k][c[k]]) { score += k === 'industry' ? 3 : k === 'segment' ? 2 : 1; why.push(`${k} ${c[k]}`); } }); if (contactsOf(c.id).some((x) => /vp|head|director|coo|ceo|founder/i.test(x.title))) { score += 1; why.push('senior contact'); } return { c, score, why }; }).filter((x) => x.score > 0).sort((a, b) => b.score - a.score).slice(0, 8);
+        if (!won.length) return 'No Won opportunities yet, so there is nothing to build a profile from.';
+        return `Profile from ${won.length} won deals: ${Object.entries(profile.segment).map(([k, v]) => `${k} (${v})`).join(', ')} in ${Object.keys(profile.industry).join(', ')}.\n\n| Company | Score | Why it matches |\n|---|---|---|\n${scored.map((x) => `| ${coLink(x.c)} | ${x.score} | ${x.why.join(', ')} |`).join('\n')}\n\n${scored.length ? `Want outreach drafts for these? Say "draft outreach".` : 'No lookalikes found.'}`;
+      }
+      case 'resurrect': {
+        const lost = S.opportunities.filter((o) => o.stage === 'Lost');
+        if (!lost.length) return 'No lost deals to resurrect.';
+        const out = lost.map((o) => { const co = byId('companies', o.companyId); const c = co ? contactsOf(co.id)[0] : null; if (!c) return `- ${oppLink(o)}: no contact to email`; const draft = `Hi ${c.name.split(' ')[0]},\n\nWhen we last spoke about ${co.name}, the timing wasn't right. Since then we've added automatic recap emails and a review queue that keeps the CRM accurate without reps typing after calls.\n\nWorth a fresh look? Happy to do a 15 minute update whenever suits.\n\n${me().name.split(' ')[0]}`; S.reviews.unshift({ id: uid('rv'), type: 'email_draft', title: `Re-engagement email to ${c.name}`, objectType: 'contact', objectId: c.id, draft, reason: `Lost ${timeAgo(o.closeDate)} (${fmtMoney(o.amount)}). Drafted by "${sk.name}".`, sourceMeetingId: null, status: 'pending', createdAt: Date.now() }); return `- ${oppLink(o)} (${fmtMoney(o.amount)}, lost ${timeAgo(o.closeDate)}): drafted re-engagement email to ${ctLink(c)}`; });
+        return `Reviewed ${lost.length} lost deal${lost.length === 1 ? '' : 's'}:\n${out.join('\n')}\n\nDrafts are waiting in [For review](#/review).`;
+      }
+      case 'outreach': {
+        const l = params.listId ? byId('lists', params.listId) : S.lists.find((x) => x.objectType === 'contact');
+        const rows = l ? listRows(l) : [];
+        if (!rows.length) return 'That list has no contacts.';
+        const pricingOk = S.knowledge.some((k) => /pricing/i.test(k.title));
+        rows.slice(0, 15).forEach((c) => { const co = byId('companies', c.companyId); const ref = S.companies.find((x) => x.arr > 0 && co && x.industry === co.industry && x.id !== co.id) || S.companies.find((x) => x.arr > 0); const draft = `Hi ${c.name.split(' ')[0]},\n\nAs ${c.title || 'a leader'} at ${co ? co.name : 'your company'}, you probably know how much pipeline data goes stale between calls. We keep the CRM accurate by turning every call into proposed updates your team approves in one click.${ref ? ` ${ref.name} uses us for exactly this.` : ''}${pricingOk ? '' : ''}\n\nOpen to a 20 minute walkthrough next week?\n\n${me().name.split(' ')[0]}`; S.reviews.unshift({ id: uid('rv'), type: 'email_draft', title: `Intro email to ${c.name}`, objectType: 'contact', objectId: c.id, draft, reason: `From list "${l.name}". Drafted by "${sk.name}" using Knowledge (ICP, objections).`, sourceMeetingId: null, status: 'pending', createdAt: Date.now() }); });
+        return `Drafted ${Math.min(rows.length, 15)} intro emails for **${l.name}**. They are in [For review](#/review) so you can edit each one before it sends.`;
+      }
+      case 'updates': {
+        const mt = S.meetings.filter((m) => m.status === 'processed').sort((a, b) => b.startsAt - a.startsAt)[0];
+        if (!mt) return 'No processed calls to read yet.';
+        const before = S.reviews.length;
+        const co = mt.companyId ? byId('companies', mt.companyId) : null;
+        const opp = co ? oppsOf(co.id).find((o) => o.stage !== 'Won' && o.stage !== 'Lost') : null;
+        if (opp && !opp.nextStep) S.reviews.unshift({ id: uid('rv'), type: 'field_update', title: `Set next step on ${opp.name}`, objectType: 'opportunity', objectId: opp.id, field: 'nextStep', from: '', to: mt.followups[0] || 'Follow up', reason: `From ${mt.title}.`, sourceMeetingId: mt.id, status: 'pending', createdAt: Date.now() });
+        mt.attendeeIds.map((id) => byId('contacts', id)).filter(Boolean).forEach((c) => { if (['New', 'MQL'].includes(c.leadStatus)) S.reviews.unshift({ id: uid('rv'), type: 'field_update', title: `Move ${c.name} to SQL`, objectType: 'contact', objectId: c.id, field: 'leadStatus', from: c.leadStatus, to: 'SQL', reason: `${c.name.split(' ')[0]} attended ${mt.title}.`, sourceMeetingId: mt.id, status: 'pending', createdAt: Date.now() }); });
+        const n = S.reviews.length - before;
+        return n ? `Read **${mt.title}** and proposed ${n} update${n === 1 ? '' : 's'}. They are in [For review](#/review).` : `Read **${mt.title}**. The records already reflect what was discussed, nothing to propose.`;
+      }
+      case 'research': {
+        const co = params.companyId ? byId('companies', params.companyId) : S.companies.slice().sort((a, b) => b.createdAt - a.createdAt)[0];
+        if (!co) return 'No company to research.';
+        researchCompany(co, true);
+        const k = S.knowledge.find((x) => x.companyId === co.id);
+        return `Researched ${coLink(co)} and saved a note to [Knowledge](#/knowledge/${k.id}).\n\n${k.body}`;
+      }
+      case 'slack': {
+        const mt = S.meetings.filter((m) => m.status === 'processed' && m.companyId && (byId('companies', m.companyId) || {}).arr > 0).sort((a, b) => b.startsAt - a.startsAt)[0] || S.meetings.filter((m) => m.status === 'processed').sort((a, b) => b.startsAt - a.startsAt)[0];
+        if (!mt) return 'No processed customer calls yet.';
+        const co = byId('companies', mt.companyId);
+        const draft = `*${co ? co.name : mt.title}* — call update\n• Wins: engaged on next steps, budget confirmed\n• Risks: follow-ups have slipped before; security review pending\n• Asks: ${mt.followups.slice(0, 2).join('; ') || 'none'}`;
+        S.reviews.unshift({ id: uid('rv'), type: 'email_draft', title: `Slack update: ${co ? co.name : mt.title}`, objectType: 'contact', objectId: mt.attendeeIds[0] || null, draft, reason: `Drafted by "${sk.name}" from ${mt.title}.`, sourceMeetingId: mt.id, status: 'pending', createdAt: Date.now() });
+        return `Drafted a Slack update from **${mt.title}**. It is in [For review](#/review).\n\n\`\`\`\n${draft}\n\`\`\``;
+      }
+      default:
+        return `Ran **${sk.name}** with these instructions:\n\n> ${sk.instructions}\n\nThis custom skill has no built-in behaviour yet; edit it on the Skills page or ask me to turn the instructions into an automation.`;
+    }
+  }
+
+  /* ---------- Sequences ---------- */
+  function seqCapacity() {
+    const L = S.settings.sequences;
+    const sentToday = S.sequences.reduce((n, q) => n + (q.sentToday || 0), 0);
+    return { emailsLeft: Math.max(0, L.email.perDay + L.warmed.perDay - sentToday), invitesLeft: L.linkedin.invitesPerDay, dmsLeft: L.linkedin.dmsPerDay, sentToday };
+  }
+  function pageSequences() {
+    const cap = seqCapacity();
+    if (route.id) {
+      const q = byId('sequences', route.id);
+      if (!q) return notFound('Sequence');
+      const enrolled = q.enrolledIds.map((id) => byId('contacts', id)).filter(Boolean);
+      return topbar(crumb(icons.send, 'Sequences', q.name), `<button class="btn" data-action="enroll-list" data-id="${q.id}">${icons.plus} Enroll list</button><button class="btn" data-action="toggle-sequence" data-id="${q.id}">${q.status === 'Active' ? icons.pause + ' Pause' : icons.play + ' Resume'}</button><button class="btn ghost danger" data-action="delete-sequence" data-id="${q.id}">${icons.trash}</button>`) + `
+        <div class="content"><div class="content-inner">
+          <div class="record-header"><span style="width:40px;height:40px;border:1px solid var(--border);border-radius:8px;display:inline-flex;align-items:center;justify-content:center">${icons.send}</span><div><h1>${esc(q.name)}</h1><div class="sub">${statusChip(q.status)} · ${enrolled.length} enrolled · ${q.sentToday || 0} sent today</div></div></div>
+          <div class="record-grid">
+            <div><div class="card"><h3>Steps</h3><div class="steps">${q.steps.map((st) => `<div class="step"><span class="grow">${st.type === 'email' ? icons.mail : icons.link} ${st.type === 'email' ? 'Email' : st.type === 'linkedin_invite' ? 'LinkedIn invite' : 'LinkedIn DM'}${st.subject ? ': ' + esc(st.subject) : ''}</span><span class="sub">Day ${st.day}</span></div>`).join('')}</div></div>
+              <div class="card"><h3>Today's capacity</h3><div class="meta" style="grid-template-columns:140px 1fr;margin-bottom:0"><div class="k">Emails left</div><div class="v">${cap.emailsLeft}</div><div class="k">LinkedIn invites</div><div class="v">${cap.invitesLeft}</div><div class="k">LinkedIn DMs</div><div class="v">${cap.dmsLeft}</div></div><div class="faint" style="margin-top:8px">Limits are set in <a href="#/settings/sequences" style="color:var(--accent)">Settings → Sequences</a>.</div></div></div>
+            <div><div class="card"><h3>Enrolled contacts</h3><div class="list">${enrolled.length ? enrolled.map((c) => `<div class="list-row"><a href="#/contacts/${c.id}" style="display:contents">${avatarHtml(c.name)}<span class="grow">${esc(c.name)}<br><span class="sub">${esc(c.title)} · ${esc(companyName(c.companyId))}${isPersonalEmail(c.email) ? ' · personal email' : ''}</span></span></a>${leadChip(c.leadStatus)}<button class="icon-btn" data-action="unenroll" data-id="${q.id}" data-contact="${c.id}" title="Remove">${icons.x}</button></div>`).join('') : '<div class="faint">Nobody enrolled yet. Enroll a list to start.</div>'}</div></div></div>
+          </div>
+        </div></div>`;
+    }
+    const cols = [
+      { key: 'name', label: 'Name', icon: icons.send, cls: 'name', render: (q) => `${icons.send}${esc(q.name)}` },
+      { key: 'status', label: 'Status', icon: icons.status, render: (q) => statusChip(q.status) },
+      { key: 'channel', label: 'Channel', icon: icons.mail },
+      { key: 'steps', label: 'Steps', render: (q) => q.steps.length, sortValue: (q) => q.steps.length },
+      { key: 'enrolled', label: 'Enrolled', icon: icons.users, render: (q) => q.enrolledIds.length, sortValue: (q) => q.enrolledIds.length },
+      { key: 'sentToday', label: 'Sent today', render: (q) => q.sentToday || 0 },
+      { key: 'createdAt', label: 'Created', icon: icons.calendar, render: (q) => timeAgo(q.createdAt), sortValue: (q) => -q.createdAt },
+    ];
+    return topbar(crumb(icons.send, 'Sequences'), `<a class="btn ghost" href="#/settings/sequences">${icons.settings} Sending limits</a><button class="btn" data-action="new-sequence">${icons.plus} New sequence</button>`) +
+      `<div class="content">${table({ key: 'sequences', noun: 'sequences', nounSingular: 'sequence', columns: cols, rows: S.sequences, rowHref: (q) => '#/sequences/' + q.id, toolbar: `<span class="count">${cap.emailsLeft} emails left today</span>` })}</div>`;
+  }
+
+  /* ---------- Settings ---------- */
+  const getPath = (obj, path) => path.split('.').reduce((o, k) => (o == null ? undefined : o[k]), obj);
+  function setPath(obj, path, value) { const ks = path.split('.'); let o = obj; ks.slice(0, -1).forEach((k) => { if (o[k] == null || typeof o[k] !== 'object') o[k] = {}; o = o[k]; }); o[ks[ks.length - 1]] = value; }
+  const SETTINGS_NAV = [
+    { group: null, items: [['profile', 'Settings', icons.user], ['mail', 'Mail and Calendar', icons.mail], ['apps', 'External apps', icons.link], ['notifications', 'Notifications', icons.bell], ['recording', 'Recording', icons.video], ['agent', 'Agent', icons.sparkle], ['connectors', 'Connectors', icons.globe], ['security', 'Security', icons.shield]] },
+    { group: 'Workspace', items: [['general', 'General', icons.settings], ['members', 'Members', icons.users], ['meetings', 'Meetings', icons.calendar], ['datamodel', 'Data model', icons.cube], ['pipelines', 'Pipelines', icons.columns], ['tasks', 'Tasks', icons.check], ['sequences', 'Sequences', icons.send], ['imports', 'Import history', icons.download], ['usage', 'Usage', icons.coin], ['billing', 'Billing', icons.dollar], ['apikeys', 'API keys', icons.tag], ['secrets', 'Secrets', icons.shield]] },
+  ];
+  function renderSettingsSidebar() {
+    const cur = route.id || 'profile';
+    return `<div class="ws-header"><a class="nav-item" href="#/up-next" style="flex:1">${icons.chevron.replace('<svg', '<svg style="transform:rotate(180deg)"')}<span class="label">Settings</span></a></div>
+      <div class="nav">${SETTINGS_NAV.map((g) => `<div class="nav-section" style="margin-top:${g.group ? 14 : 4}px">${g.group ? `<div class="nav-section-title"><span>${g.group}</span></div>` : ''}${g.items.map(([id, label, icon]) => `<a class="nav-item ${cur === id ? 'active' : ''}" href="#/settings/${id}">${icon}<span class="label">${esc(label)}</span></a>`).join('')}</div>`).join('')}</div>
+      <div class="sidebar-footer"><span class="spacer"></span><button class="icon-btn" data-action="toggle-theme" title="Toggle theme">${S.settings.theme === 'dark' ? icons.sun : icons.moon}</button></div>`;
+  }
+  const sw = (path, label, desc) => `<div class="setting-row"><div class="grow"><div>${esc(label)}</div>${desc ? `<div class="sub muted">${esc(desc)}</div>` : ''}</div><button class="switch ${getPath(S.settings, path) ? 'on' : ''}" data-action="toggle-setting" data-path="${path}"></button></div>`;
+  const numRow = (path, label, unit) => `<div class="setting-row"><div class="grow">${esc(label)}</div><div class="limit"><input type="number" min="0" data-edit="settings::${path}" value="${esc(getPath(S.settings, path))}">${unit ? `<span class="sub">${unit}</span>` : ''}</div></div>`;
+  const rangeRow = (pMin, pMax, label) => `<div class="setting-row"><div class="grow">${esc(label)}</div><div class="limit"><input type="number" min="0" data-edit="settings::${pMin}" value="${esc(getPath(S.settings, pMin))}"><span class="sub">min</span><span class="faint">–</span><input type="number" min="0" data-edit="settings::${pMax}" value="${esc(getPath(S.settings, pMax))}"><span class="sub">min</span></div></div>`;
+  const sec = (title, desc, body) => `<div class="settings-section"><h2>${esc(title)}</h2>${desc ? `<p class="muted">${esc(desc)}</p>` : ''}${body}</div>`;
+  const group = (title, desc, rows) => `<div class="settings-group"><h3>${esc(title)}</h3>${desc ? `<p class="muted" style="margin-bottom:8px">${esc(desc)}</p>` : ''}<div class="setting-rows">${rows}</div></div>`;
+  function pageSettings() {
+    const id = route.id || 'profile';
+    const user = me();
+    const title = (SETTINGS_NAV.flatMap((g) => g.items).find((x) => x[0] === id) || ['', 'Settings'])[1];
+    let body = '';
+    switch (id) {
+      case 'profile': body = sec('Profile', 'Your account across every workspace.', group('Details', '', `<div class="meta" style="grid-template-columns:140px 1fr;margin:0;padding:6px 0"><div class="k">Name</div><div class="v">${textEdit('users', user.id, 'name', user.name)}</div><div class="k">Email</div><div class="v">${textEdit('users', user.id, 'email', user.email)}</div><div class="k">Theme</div><div class="v"><select data-edit="settings::theme"><option value="dark" ${S.settings.theme === 'dark' ? 'selected' : ''}>Dark</option><option value="light" ${S.settings.theme === 'light' ? 'selected' : ''}>Light</option></select></div></div>`) + group('Data', 'Everything is stored in this browser.', `<div style="display:flex;gap:8px;padding:8px 0"><button class="btn" data-action="export">${icons.download} Export JSON</button><button class="btn danger" data-action="reset">${icons.refresh} Reset to sample data</button></div>`)); break;
+      case 'mail': body = sec('Mail and Calendar', 'The agent reads your calendar to join meetings and sends email as you.', group('Google account', '', sw('mail.gmail', 'Gmail', 'Send recap and outreach emails from your address') + sw('mail.calendar', 'Google Calendar', 'Join scheduled meetings and detect external attendees')) + group('Signature', '', `<textarea class="draft" style="width:100%;min-height:70px;padding:8px 10px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font-family:var(--font)" data-edit="settings::mail.signature">${esc(S.settings.mail.signature)}</textarea>`)); break;
+      case 'apps': body = sec('External apps', 'Apps the agent can act in on your behalf.', group('Connected apps', '', S.settings.externalApps.map((a) => `<div class="setting-row"><div class="grow">${esc(a.name)}<div class="sub muted">${a.connected ? 'Connected' : 'Not connected'}</div></div><button class="btn sm" data-action="toggle-app" data-list="externalApps" data-id="${a.id}">${a.connected ? 'Disconnect' : 'Connect'}</button></div>`).join(''))); break;
+      case 'notifications': body = sec('Notifications', 'What the workspace tells you about, and when.', group('Email and in-app', '', sw('notifications.reviewQueue', 'New items in For review') + sw('notifications.automationFailures', 'Automation failures') + sw('notifications.meetingSummaries', 'Meeting summaries', 'When a recorded call has been processed') + sw('notifications.dailyDigest', 'Daily digest', 'One email each morning with tasks and meetings') + sw('notifications.mentions', 'Mentions in notes'))); break;
+      case 'recording': body = sec('Recording', `${esc(S.settings.workspace)} joins your meetings to generate summaries, follow-ups and record updates.`, recordingOptions(S.settings.recording) + group('Retention', '', numRow('meetings.retentionDays', 'Keep recordings for', 'days') + sw('meetings.autoSummary', 'Summarise automatically after each call'))); break;
+      case 'agent': body = sec('Agent', 'How much the agent does on its own.', group('Autonomy', '', `<div class="options">${[['review', 'Propose, then review', 'Record changes and outgoing messages wait in For review until you approve them.'], ['auto', 'Apply automatically', 'Changes apply immediately. Outgoing email still needs the setting below.']].map(([v, t, d]) => `<div class="option ${S.settings.agent.autonomy === v ? 'selected' : ''}" data-action="pick-autonomy" data-value="${v}"><div class="ot"><h3>${t}</h3><p>${d}</p></div><span class="radio"></span></div>`).join('')}</div>`) + group('Limits', '', sw('agent.allowExternalSend', 'Allow sending email without review', 'Only applies to automations whose permissions include email.send') + numRow('agent.maxCreditsPerRun', 'Max credits per run', 'credits')) + group('Tools automations can request', 'Every automation asks for the specific tools its steps use before it can be tested or activated.', `<div class="list">${Object.entries(TOOLS).map(([k, v]) => { const users = S.automations.filter((a) => a.permissions.some((p) => p.tool === k && p.granted)).length; return `<div class="list-row">${icons.shield}<span class="grow">${esc(v)}<br><span class="sub mono">${k}</span></span><span class="sub">${users} automation${users === 1 ? '' : 's'}</span></div>`; }).join('')}</div>`)); break;
+      case 'connectors': body = sec('Connectors', 'Data sources the agent can read from and write to.', group('Connectors', '', S.settings.connectors.map((a) => `<div class="setting-row"><div class="grow">${esc(a.name)}<div class="sub muted">${esc(a.kind)} · ${a.connected ? 'Connected' : 'Not connected'}</div></div><button class="btn sm" data-action="toggle-app" data-list="connectors" data-id="${a.id}">${a.connected ? 'Disconnect' : 'Connect'}</button></div>`).join(''))); break;
+      case 'security': body = sec('Security', '', group('Sign-in', '', sw('security.twoFactor', 'Require two-factor authentication') + sw('security.sso', 'Single sign-on (SAML)', 'Available on Enterprise') + numRow('security.sessionHours', 'Session length', 'hours')) + group('Sessions', '', `<div class="setting-row"><div class="grow">This browser<div class="sub muted">Signed in as ${esc(user.email)}</div></div><span class="chip green">Current</span></div>`)); break;
+      case 'general': body = sec('General', '', group('Workspace', '', `<div class="meta" style="grid-template-columns:140px 1fr;margin:0;padding:6px 0"><div class="k">Name</div><div class="v"><input type="text" data-edit="settings::workspace" value="${esc(S.settings.workspace)}"></div><div class="k">Domain</div><div class="v"><input type="text" data-edit="settings::domain" value="${esc(S.settings.domain)}"></div><div class="k">Timezone</div><div class="v"><input type="text" data-edit="settings::timezone" value="${esc(S.settings.timezone)}"></div></div>`)); break;
+      case 'members': body = sec('Members', '', group(`${S.users.length} members`, '', S.users.map((u) => `<div class="setting-row">${avatarHtml(u.name)}<div class="grow">${esc(u.name)}${u.invited ? ' <span class="chip amber">Invited</span>' : ''}<div class="sub muted">${esc(u.email)}</div></div><span class="chip gray">${esc(u.role)}</span>${u.id !== S.settings.userId ? `<button class="icon-btn" data-action="remove-member" data-id="${u.id}" title="Remove">${icons.x}</button>` : ''}</div>`).join('') + `<div style="padding:8px 0"><button class="btn" data-action="invite-member">${icons.plus} Invite member</button></div>`)); break;
+      case 'meetings': body = sec('Meetings', 'Defaults for meetings the agent joins.', group('Defaults', '', numRow('meetings.defaultDuration', 'Default length', 'min') + numRow('meetings.joinLeadMin', 'Join before start', 'min') + sw('meetings.autoSummary', 'Summarise automatically')) + group('Recording preference', '', `<div class="setting-row"><div class="grow">${S.settings.recording === 'all' ? 'Record all meetings' : S.settings.recording === 'external' ? 'Record external meetings only' : "Don't record"}</div><a class="btn sm" href="#/settings/recording">Change</a></div>`)); break;
+      case 'datamodel': body = sec('Data model', 'Objects and fields in this workspace.', [['Contact', ['name', 'email', 'title', 'company', 'leadStatus', 'owner', 'source', 'phone', 'createdAt']], ['Company', ['name', 'domain', 'industry', 'size', 'segment', 'owner', 'arr', 'funding', 'source', 'createdAt']], ['Opportunity', ['name', 'company', 'stage', 'amount', 'owner', 'closeDate', 'qualifiedAt', 'nextStep', 'createdAt']], ['Meeting', ['title', 'startsAt', 'durationMin', 'attendees', 'external', 'recorded', 'status', 'summary', 'followups']], ['Automation', ['name', 'status', 'trigger', 'steps', 'permissions', 'runProtection', 'credits', 'runLog']]].map(([obj, fields]) => group(obj, '', `<div class="field-chips">${fields.map((f) => `<span class="chip outline mono">${f}</span>`).join('')}</div>`)).join('')); break;
+      case 'pipelines': body = sec('Pipelines', 'Stages opportunities move through. Won and Lost are fixed.', group('Opportunity stages', '', STAGES.map((st) => `<div class="setting-row"><div class="grow">${stageChip(st)} <span class="sub muted" style="margin-left:8px">${S.opportunities.filter((o) => o.stage === st).length} opportunities</span></div>${st !== 'Won' && st !== 'Lost' ? `<button class="icon-btn" data-action="remove-stage" data-stage="${esc(st)}" title="Remove">${icons.x}</button>` : ''}</div>`).join('') + `<div style="padding:8px 0"><button class="btn" data-action="add-stage">${icons.plus} Add stage</button></div>`)); break;
+      case 'tasks': body = sec('Tasks', '', group('Defaults', '', sw('notifications.dailyDigest', 'Include tasks in the daily digest') + `<div class="setting-row"><div class="grow">Open tasks</div><span class="sub">${S.tasks.filter((t) => !t.done).length}</span></div><div class="setting-row"><div class="grow">Overdue</div><span class="sub">${S.tasks.filter((t) => !t.done && t.due < Date.now()).length}</span></div>`)); break;
+      case 'sequences': body = sec('Sending limits', 'Default limits for every sender, applied across all sequences.',
+        group('Email', 'Sends from your company domain. High volume here affects deliverability for the whole workspace.', numRow('sequences.email.perDay', 'Emails per day') + rangeRow('sequences.email.gapMin', 'sequences.email.gapMax', 'Gap between sends')) +
+        group('LinkedIn', 'LinkedIn strictly limits outreach. Exceeding safe limits can permanently restrict the account.', numRow('sequences.linkedin.invitesPerDay', 'Invites per day') + rangeRow('sequences.linkedin.inviteGapMin', 'sequences.linkedin.inviteGapMax', 'Gap between invites') + numRow('sequences.linkedin.dmsPerDay', 'DMs per day') + rangeRow('sequences.linkedin.dmGapMin', 'sequences.linkedin.dmGapMax', 'Gap between DMs')) +
+        group('Warmed mailboxes', 'Limits apply to each mailbox. Scale volume by adding mailboxes, not raising caps.', numRow('sequences.warmed.perDay', 'Emails per day') + rangeRow('sequences.warmed.gapMin', 'sequences.warmed.gapMax', 'Gap between sends'))) +
+        sec('Deliverability', '', group('', '', sw('sequences.sendUnverifiable', 'Send to unverifiable emails', 'Sequences will send to addresses on catch-all domains, which accept mail for any address and can\'t be individually verified. Off, these recipients are removed from sequences instead.'))); break;
+      case 'imports': body = sec('Import history', '', group('', '', S.imports.map((im) => `<div class="setting-row"><div class="grow">${esc(im.file)}<div class="sub muted">${im.objectType === 'contact' ? 'Contacts' : 'Companies'} · ${im.rows} rows · ${im.created} created, ${im.updated} updated, ${im.skipped} skipped${im.error ? ' · ' + esc(im.error) : ''}</div></div><span class="sub">${userName(im.by)} · ${timeAgo(im.at)}</span><span class="chip ${im.status === 'Completed' ? 'green' : 'red'}">${im.status}</span></div>`).join('') + `<div style="padding:8px 0"><button class="btn" data-action="import-csv">${icons.download} Import CSV</button></div>`)); break;
+      case 'usage': { const rows = S.automations.map((a) => ({ a, credits: a.runLog.reduce((n, r) => n + (r.credits || 0), 0) })).sort((x, y) => y.credits - x.credits); const total = rows.reduce((n, r) => n + r.credits, 0); const max = rows[0] ? rows[0].credits : 1; body = sec('Usage', 'Credits used by automations and skills this period.', group(`${total.toFixed(1)} credits from recent runs`, '', rows.map((r) => `<div class="setting-row"><div class="grow"><a href="#/automations/${r.a.id}">${esc(r.a.name)}</a><div class="bar"><span style="width:${Math.round((r.credits / max) * 100)}%"></span></div></div><span class="sub">${r.credits.toFixed(2)} cr</span></div>`).join('')) + group('Skills', '', S.skills.map((k) => `<div class="setting-row"><div class="grow">${esc(k.name)}</div><span class="sub">${k.uses} runs</span></div>`).join(''))); break; }
+      case 'billing': body = sec('Billing', '', group('Plan', '', `<div class="setting-row"><div class="grow">Team<div class="sub muted">${S.users.length} of 15 seats · renews ${fmtDate(Date.now() + 19 * DAY)}</div></div><span class="chip green">Active</span></div><div class="setting-row"><div class="grow">Credits included</div><span class="sub">2,000 / month</span></div>`)); break;
+      case 'apikeys': body = sec('API keys', 'Keys for webhooks and external syncs.', group('', '', S.apiKeys.map((k) => `<div class="setting-row"><div class="grow">${esc(k.name)}<div class="sub muted mono">${esc(k.prefix)}… · ${k.scopes.join(', ')}</div></div><span class="sub">Last used ${k.lastUsed ? timeAgo(k.lastUsed) : 'never'}</span><button class="btn ghost sm danger" data-action="revoke-api-key" data-id="${k.id}">Revoke</button></div>`).join('') + `<div style="padding:8px 0"><button class="btn" data-action="new-api-key">${icons.plus} New key</button></div>`)); break;
+      case 'secrets': body = sec('Secrets', 'Values automations can reference without exposing them in steps.', group('', '', S.secrets.map((k) => `<div class="setting-row"><div class="grow mono">${esc(k.name)}<div class="sub muted" style="font-family:var(--font)">Updated ${timeAgo(k.updatedAt)}</div></div><button class="btn ghost sm danger" data-action="delete-secret" data-id="${k.id}">Delete</button></div>`).join('') + `<div style="padding:8px 0"><button class="btn" data-action="new-secret">${icons.plus} New secret</button></div>`)); break;
+      default: body = sec(title, 'Nothing to configure here yet.', '');
+    }
+    return topbar(crumb(icons.settings, 'Settings', title)) + `<div class="content"><div class="content-inner settings-page">${body}</div></div>`;
+  }
+  function importCsv(objectType, csv) {
+    const lines = (csv || '').split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+    const im = { id: uid('im'), file: 'pasted.csv', objectType, rows: Math.max(0, lines.length - 1), created: 0, updated: 0, skipped: 0, status: 'Completed', by: S.settings.userId, at: Date.now() };
+    if (lines.length < 2) { im.status = 'Failed'; im.error = 'No data rows'; S.imports.unshift(im); rerender(); return; }
+    const header = lines[0].split(',').map((h) => h.trim().toLowerCase());
+    const need = objectType === 'contact' ? 'email' : 'name';
+    if (!header.includes(need)) { im.status = 'Failed'; im.error = `Missing required column: ${need}`; S.imports.unshift(im); toast(im.error); rerender(); return; }
+    lines.slice(1).forEach((line) => {
+      const cells = line.split(',').map((c) => c.trim()); const row = {}; header.forEach((h, i) => { row[h] = cells[i] || ''; });
+      if (objectType === 'contact') {
+        if (!row.email) { im.skipped++; return; }
+        const ex = S.contacts.find((c) => c.email.toLowerCase() === row.email.toLowerCase());
+        if (ex) { if (row.title) ex.title = row.title; im.updated++; return; }
+        const co = row.company ? createCompany({ name: row.company }) : null;
+        createContact({ name: row.name || row.email.split('@')[0], email: row.email, title: row.title || '', companyId: co ? co.id : null, source: 'Import' }); im.created++;
+      } else {
+        if (!row.name) { im.skipped++; return; }
+        const before = S.companies.length; createCompany({ name: row.name, domain: row.domain, industry: row.industry }); S.companies.length > before ? im.created++ : im.updated++;
+      }
+    });
+    S.imports.unshift(im); toast(`Imported: ${im.created} created, ${im.updated} updated, ${im.skipped} skipped`); rerender();
+  }
+
   /* ---------- Init ---------- */
-  S = load();
-  if (!S.activity) S.activity = [];
+  S = migrate(load());
   if (!location.hash) location.hash = '#/up-next';
   render();
   window.CRM = { state: () => S, save, reset: resetAll, respond };

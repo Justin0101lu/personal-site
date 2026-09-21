@@ -430,3 +430,44 @@ table.grid td select.inline:focus, table.grid td input.inline:focus { outline: n
   .record-grid { grid-template-columns: 1fr; }
   .field-row { grid-template-columns: 1fr; }
 }
+
+/* ---------- Additions: callouts, skills, run steps, settings ---------- */
+.callout { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border: 1px solid var(--amber); background: var(--amber-soft); border-radius: 8px; margin-bottom: 18px; color: var(--text); }
+.callout svg { width: 15px; height: 15px; flex: none; margin-top: 2px; color: var(--amber); }
+.skill-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; }
+.skill-grid .card { margin: 0; }
+.card.skill.off { opacity: 0.6; }
+.skill-head { display: flex; align-items: center; gap: 8px; }
+.skill-head svg { width: 15px; height: 15px; color: var(--text-2); }
+.skill-head .grow { flex: 1; }
+.run-row.link { cursor: pointer; }
+.run-row.link:hover { background: var(--bg-hover); }
+.run-steps { padding: 6px 10px 8px 24px; border-bottom: 1px solid var(--border); background: var(--bg); }
+.run-step { display: flex; align-items: center; gap: 10px; padding: 6px 0; font-size: 12.5px; }
+.run-step .n { width: 18px; height: 18px; border-radius: 50%; background: var(--bg-active); font-size: 10px; display: inline-flex; align-items: center; justify-content: center; color: var(--text-2); flex: none; }
+.run-step .grow { flex: 1; min-width: 0; }
+.run-step.failed .n { background: var(--red-soft); color: var(--red); }
+.settings-page { max-width: 780px; }
+.settings-section { margin-bottom: 36px; }
+.settings-section > h2 { font-size: 15px; margin-bottom: 4px; }
+.settings-section > p.muted { margin-bottom: 14px; }
+.settings-group { margin-bottom: 22px; }
+.settings-group h3 { font-size: 13px; margin-bottom: 4px; }
+.settings-group h3:empty { display: none; }
+.setting-rows { border: 1px solid var(--border); border-radius: 8px; background: var(--bg-elev); }
+.setting-rows:empty { display: none; }
+.setting-row { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-top: 1px solid var(--border); }
+.setting-row:first-child { border-top: 0; }
+.setting-row .grow { flex: 1; min-width: 0; }
+.setting-row .sub.muted { font-size: 12px; margin-top: 2px; }
+.setting-row .limit { display: flex; align-items: center; gap: 6px; }
+.setting-row .limit input { width: 64px; height: 28px; padding: 0 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); text-align: left; }
+.setting-row .limit input:focus { outline: none; border-color: var(--accent); }
+.setting-rows .meta { padding: 8px 14px; }
+.setting-rows > div[style] { padding-left: 14px; }
+.setting-rows .options { border: 0; border-radius: 0; margin: 0; }
+.setting-rows .list { padding: 6px; }
+.setting-rows textarea { margin: 10px 14px; width: calc(100% - 28px) !important; }
+.field-chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 12px 14px; }
+.bar { height: 4px; border-radius: 2px; background: var(--bg-active); margin-top: 6px; overflow: hidden; }
+.bar span { display: block; height: 100%; background: var(--accent); }

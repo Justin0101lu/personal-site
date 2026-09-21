@@ -89,13 +89,44 @@
       { id: 'mt_9', title: 'Sprout Learning — Proposal walkthrough', startsAt: snap(ago(4 * DAY + 2 * HOUR)), durationMin: 30, attendeeIds: ['ct_9'], internalIds: ['u_3'], external: true, recorded: true, status: 'recorded', companyId: 'co_7', summary: '', followups: [], transcriptLines: 240 },
     ];
 
-    const mkRuns = (count, lastRunAgoMs, failIdx) => {
+    const STEP_OUTPUT = (name) => {
+      if (/context|load|gather|fetch|query/i.test(name)) return 'Loaded record, company, 3 contacts, 2 meetings and 4 notes';
+      if (/draft|compose|write/i.test(name)) return 'Drafted 142 words grounded in Knowledge (pricing, ICP)';
+      if (/review|propose/i.test(name)) return 'Added to For review';
+      if (/notify|post|send|slack|email/i.test(name)) return 'Delivered';
+      if (/check|validate|reject|search|score|diff|classify|match|find/i.test(name)) return 'Passed';
+      if (/set|update|write|mark|store|fill|merge|assign|record|create|tag|stamp|link/i.test(name)) return 'Updated 1 record';
+      return 'Done';
+    };
+    const mkRuns = (count, lastRunAgoMs, failIdx, stepNames) => {
       const runs = [];
       for (let i = 0; i < count; i++) {
         const ts = ago(lastRunAgoMs + i * (37 * MIN + (i % 5) * 9 * MIN));
-        runs.push({ id: 'run_' + Math.random().toString(36).slice(2, 8), ts, status: i === failIdx ? 'failed' : 'success', durationMs: 1200 + (i * 731) % 6400, credits: +(0.1 + ((i * 7) % 5) * 0.05).toFixed(2) });
+        const failed = i === failIdx;
+        const failAt = Math.min(stepNames.length - 1, 2);
+        const steps = stepNames.map((name, j) => failed && j === failAt ? { name, status: 'failed', output: 'Timed out waiting for the external service (30s)' }
+          : failed && j > failAt ? { name, status: 'skipped', output: 'Skipped after failure' } : { name, status: 'success', output: STEP_OUTPUT(name) });
+        runs.push({ id: 'run_' + Math.random().toString(36).slice(2, 8), ts, status: failed ? 'failed' : 'success', trigger: i % 4 === 3 ? 'Manual' : 'Event', durationMs: 1200 + (i * 731) % 6400, credits: +(0.1 + ((i * 7) % 5) * 0.05).toFixed(2), steps });
       }
       return runs;
+    };
+    // Which tools an automation needs, derived from what its steps do.
+    const permsFor = (a) => {
+      const p = new Set(['companies.read', 'contacts.read']);
+      const text = (a.steps.join(' ') + ' ' + a.description).toLowerCase();
+      if (/opportunit|deal|stage|won|arr/.test(text)) p.add('opportunities.read');
+      if (/meeting|transcript|call/.test(text)) p.add('meetings.read');
+      if (/knowledge|research note/.test(text)) p.add('knowledge.write');
+      if (/create contact|find or create contact|merge|lead status|set lead|assign ae|nurture/.test(text)) p.add('contacts.write');
+      if (/create company|find or create company|segment|industry|arr|billing id|enrich|fill/.test(text)) p.add('companies.write');
+      if (/mark opportunity|set qualified|qualified date|update opportunity|stage/.test(text) && /set|mark|update|sync/.test(text)) p.add('opportunities.write');
+      if (/review queue|propose/.test(text)) p.add('review.write');
+      if (/email/.test(text)) p.add('email.send');
+      if (/slack|#wins|channel/.test(text)) p.add('slack.post');
+      if (/ticket|issue|support desk|labels/.test(text)) p.add('support.write');
+      if (/webhook|payload|api|provider|website|news/.test(text)) p.add('http.fetch');
+      if (/task/.test(text)) p.add('tasks.write');
+      return Array.from(p).map((tool) => ({ tool, granted: true }));
     };
 
     const automations = [
@@ -119,12 +150,15 @@
       { id: 'au_18', name: 'Set qualified opportunity date when entering Qualified', status: 'Active', trigger: 'Opportunity updated', extraTriggers: 0, cadence: 'Event', createdBy: 'u_me', runProtection: true, credits: 0.02, runs: 44, lastRunAgo: 24 * HOUR, lastFailed: null, description: 'Stamp the qualified date the first time an opportunity enters the Qualified stage.', steps: ['Check stage is Qualified', 'Check date empty', 'Set qualified date'] },
       { id: 'au_19', name: 'Weekly pipeline digest', status: 'Paused', trigger: 'Schedule', extraTriggers: 0, cadence: 'Weekly, Monday 8:00', createdBy: 'u_me', runProtection: false, credits: 0.5, runs: 9, lastRunAgo: 8 * DAY, lastFailed: null, description: 'Every Monday, summarise stage changes, new opportunities and slipped close dates from the previous week and email the digest to the sales team.', steps: ['Query last 7 days of changes', 'Summarise', 'Send email'] },
       { id: 'au_20', name: 'Stale opportunity nudge', status: 'Active', trigger: 'Schedule', extraTriggers: 0, cadence: 'Daily, 9:00', createdBy: 'u_3', runProtection: true, credits: 0.1, runs: 33, lastRunAgo: 13 * HOUR, lastFailed: null, description: 'Nudge the owner of any open opportunity with no activity in 14 days and suggest a next step based on the last meeting.', steps: ['Find stale opportunities', 'Draft nudge', 'Notify owner'] },
-    ].map((a) => ({
+    ].map((a, i) => ({
       ...a,
       lastRun: ago(a.lastRunAgo),
       lastFailed: a.lastFailed ? ago(a.lastFailed) : null,
-      runLog: mkRuns(8, a.lastRunAgo, a.lastFailed ? 3 : -1),
+      runLog: mkRuns(8, a.lastRunAgo, a.lastFailed ? 3 : -1, a.steps),
       createdAt: ago(60 * DAY - (parseInt(a.id.split('_')[1], 10) * DAY)),
+      updatedAt: ago([5 * 7, 4, 17, 5 * 7, 3, 28, 7, 1, 14, 5, 6 * 30, 2, 21, 7, 7, 7, 6, 7, 30, 9][i] * (i === 1 || i === 2 ? HOUR : DAY)),
+      permissions: permsFor(a),
+      builtInChat: i >= 4,
     }));
 
     const reviews = [
@@ -193,12 +227,34 @@
     ];
 
     const skills = [
-      { id: 'sk_1', name: 'Draft recap email', description: 'Writes a recap email from a processed meeting, restating pain points in the customer\'s words and listing agreed next steps.', enabled: true, uses: 84 },
-      { id: 'sk_2', name: 'Propose record updates', description: 'Reads a transcript and proposes changes to contact, company and opportunity fields for review.', enabled: true, uses: 212 },
-      { id: 'sk_3', name: 'Account research', description: 'Researches a company from its website and recent news and writes a knowledge note.', enabled: true, uses: 58 },
-      { id: 'sk_4', name: 'Pipeline dashboard', description: 'Summarises open pipeline by stage and owner, and flags deals with no next step or a slipped close date.', enabled: true, uses: 31 },
-      { id: 'sk_5', name: 'Intro email', description: 'Drafts a cold intro to a contact using their title, company and any shared references in the CRM.', enabled: true, uses: 19 },
-      { id: 'sk_6', name: 'Slack channel update', description: 'Writes a short customer update for a shared Slack channel with wins, risks and asks.', enabled: false, uses: 12 },
+      { id: 'sk_1', kind: 'lookalikes', name: 'Find lookalikes', description: 'Finds companies in your CRM that look like the accounts you have already won, so you know who to prospect next.', instructions: 'Look at every Won opportunity. Build a profile from those companies (industry, segment, size, funding). Score every other company that is not a customer against that profile and return the top matches with the reason they match.', enabled: true, uses: 27, lastRun: ago(3 * DAY), builtIn: true },
+      { id: 'sk_2', kind: 'resurrect', name: 'Resurrect lost deals', description: 'Reviews every Lost opportunity, finds the ones worth another try, and drafts a re-engagement email for each.', instructions: 'For each Lost opportunity older than 14 days, read the company, its contacts and the last meeting summary. If the loss reason was timing or budget rather than fit, draft a short re-engagement email to the main contact that references what changed since. Put drafts in For review.', enabled: true, uses: 9, lastRun: ago(12 * DAY), builtIn: true },
+      { id: 'sk_3', kind: 'outreach', name: 'Draft outreach', description: 'Drafts a personalised intro email for every contact in a list, grounded in Knowledge (ICP, pricing, objections).', instructions: 'For each contact in the chosen list, write a 4-sentence intro that names their role and company, references a customer in the same industry if we have one, and proposes a 20 minute walkthrough. Never mention pricing unless the Knowledge note allows it. Put every draft in For review.', enabled: true, uses: 41, lastRun: ago(1 * DAY), builtIn: true },
+      { id: 'sk_4', kind: 'pipeline', name: 'Build pipeline report', description: 'Summarises open pipeline by stage and owner, and flags deals with no next step or a slipped close date.', instructions: 'Group open opportunities by stage and by owner with counts and amounts. List deals that have no next step, a close date in the past, or no qualified date. Keep it short enough to paste into Slack.', enabled: true, uses: 63, lastRun: ago(2 * HOUR), builtIn: true },
+      { id: 'sk_5', kind: 'updates', name: 'Propose record updates', description: 'Reads the latest processed call and proposes changes to contact, company and opportunity fields for review.', instructions: 'Read the transcript summary of the most recent processed meeting. Propose stage moves, lead status changes, next steps and title corrections. Never move lead status backwards. Everything goes to For review, nothing is applied directly.', enabled: true, uses: 212, lastRun: ago(2 * DAY), builtIn: true },
+      { id: 'sk_6', kind: 'research', name: 'Account research', description: 'Researches a company and writes a knowledge note with what they do, who we know there, and likely use cases.', instructions: 'Given a company, summarise what it does from its domain and industry, list the contacts we have and their roles, list open opportunities, and suggest an opener for the first call. Save the result as a Knowledge note attached to the company.', enabled: true, uses: 58, lastRun: ago(4 * DAY), builtIn: true },
+      { id: 'sk_7', kind: 'slack', name: 'Slack channel update', description: 'Writes a short customer update for a shared Slack channel with wins, risks and asks from the last call.', instructions: 'Take the most recent processed call with an existing customer. Write three bullets: wins, risks, asks. Keep it under 80 words. Put it in For review before posting.', enabled: false, uses: 12, lastRun: ago(20 * DAY), builtIn: true },
+    ];
+
+    const sequences = [
+      { id: 'sq_1', name: 'Series A launch outreach', status: 'Active', channel: 'email', steps: [{ type: 'email', day: 0, subject: 'Quick question about {{company}}' }, { type: 'email', day: 3, subject: 'Re: Quick question about {{company}}' }, { type: 'linkedin_invite', day: 5 }, { type: 'email', day: 9, subject: 'Closing the loop' }], enrolledIds: ['ct_10', 'ct_20', 'ct_14', 'ct_17'], sentToday: 6, createdAt: ago(10 * DAY) },
+      { id: 'sq_2', name: 'Demo no-show follow-up', status: 'Paused', channel: 'email', steps: [{ type: 'email', day: 0, subject: 'Sorry we missed you' }, { type: 'email', day: 2, subject: 'Want to grab another time?' }], enrolledIds: ['ct_6'], sentToday: 0, createdAt: ago(20 * DAY) },
+    ];
+
+    const imports = [
+      { id: 'im_1', file: 'yc-s26-demo-day.csv', objectType: 'company', rows: 84, created: 3, updated: 0, skipped: 81, status: 'Completed', by: 'u_me', at: ago(12 * DAY) },
+      { id: 'im_2', file: 'linkedin-leads-aug.csv', objectType: 'contact', rows: 231, created: 4, updated: 12, skipped: 215, status: 'Completed', by: 'u_3', at: ago(25 * DAY) },
+      { id: 'im_3', file: 'old-crm-export.csv', objectType: 'contact', rows: 1200, created: 0, updated: 0, skipped: 0, status: 'Failed', error: 'Missing required column: email', by: 'u_me', at: ago(40 * DAY) },
+    ];
+
+    const apiKeys = [
+      { id: 'ak_1', name: 'Cal.com webhook', prefix: 'hf_live_3k9x', scopes: ['webhooks'], createdAt: ago(45 * DAY), lastUsed: ago(6 * MIN) },
+      { id: 'ak_2', name: 'Data warehouse sync', prefix: 'hf_live_p2mq', scopes: ['read'], createdAt: ago(30 * DAY), lastUsed: ago(3 * HOUR) },
+    ];
+
+    const secrets = [
+      { id: 'sc_1', name: 'SLACK_WEBHOOK_URL', updatedAt: ago(30 * DAY) },
+      { id: 'sc_2', name: 'ENRICHMENT_API_KEY', updatedAt: ago(12 * DAY) },
     ];
 
     const notes = [
@@ -214,10 +270,21 @@
         theme: 'dark',
         recording: 'external',
         workspace: 'Holography',
+        domain: 'holography.example',
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
         userId: 'u_me',
         oppView: 'table',
+        stages: ['Discovery', 'Qualified', 'Proposal', 'Negotiation', 'Won', 'Lost'],
+        meetings: { defaultDuration: 30, joinLeadMin: 2, retentionDays: 90, autoSummary: true },
+        notifications: { reviewQueue: true, automationFailures: true, meetingSummaries: true, dailyDigest: false, mentions: true },
+        agent: { autonomy: 'review', model: 'balanced', maxCreditsPerRun: 2, allowExternalSend: false },
+        mail: { gmail: true, calendar: true, signature: 'Justin Lu\nHolography' },
+        externalApps: [{ id: 'slack', name: 'Slack', connected: true }, { id: 'zoom', name: 'Zoom', connected: true }, { id: 'meet', name: 'Google Meet', connected: true }, { id: 'calcom', name: 'Cal.com', connected: true }, { id: 'linkedin', name: 'LinkedIn', connected: false }],
+        connectors: [{ id: 'orb', name: 'Orb (billing)', connected: true, kind: 'Billing' }, { id: 'harmonic', name: 'Harmonic (enrichment)', connected: true, kind: 'Enrichment' }, { id: 'pylon', name: 'Pylon (support)', connected: true, kind: 'Support' }, { id: 'segment', name: 'Segment (product events)', connected: false, kind: 'Product' }, { id: 'warehouse', name: 'Snowflake', connected: false, kind: 'Warehouse' }],
+        sequences: { email: { perDay: 20, gapMin: 3, gapMax: 8 }, linkedin: { invitesPerDay: 10, inviteGapMin: 5, inviteGapMax: 10, dmsPerDay: 20, dmGapMin: 5, dmGapMax: 10 }, warmed: { perDay: 20, gapMin: 3, gapMax: 8 }, sendUnverifiable: false },
+        security: { sso: false, twoFactor: true, sessionHours: 168 },
       },
-      users, companies, contacts, opportunities, meetings, automations, reviews, tasks, chats, lists, knowledge, skills, notes,
+      users, companies, contacts, opportunities, meetings, automations, reviews, tasks, chats, lists, knowledge, skills, notes, sequences, imports, apiKeys, secrets,
       activity: [],
     };
   };
