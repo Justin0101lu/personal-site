@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://freightowed.com/sitemap.xml
