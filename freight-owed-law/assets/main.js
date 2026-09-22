@@ -54,7 +54,7 @@
 
       if (!configured) {
         // No form backend configured yet: fall back to a pre-filled email.
-        var to = form.getAttribute("data-mailto") || "intake@carriercounsel.com";
+        var to = form.getAttribute("data-mailto") || "adam.field@carriercounsel.com";
         var lines = [];
         data.forEach(function (v, k) { if (k !== "_gotcha" && v) lines.push(k + ": " + v); });
         location.href = "mailto:" + to + "?subject=" + encodeURIComponent("Claim evaluation request") +
@@ -74,7 +74,7 @@
           status.classList.add("ok");
         })
         .catch(function () {
-          status.textContent = "Something went wrong sending the form. Please email intake@carriercounsel.com.";
+          status.textContent = "Something went wrong sending the form. Please email adam.field@carriercounsel.com.";
           status.classList.add("err");
         })
         .finally(function () { btn.disabled = false; btn.textContent = "Request free evaluation"; });

@@ -4,7 +4,7 @@ import os, sys
 
 OUT = sys.argv[1] if len(sys.argv) > 1 else "."
 SITE = "https://carriercounsel.com"
-EMAIL = "intake@carriercounsel.com"
+EMAIL = "adam.field@carriercounsel.com"
 
 def shell(title, desc, path, body, extra_head=""):
     canonical = SITE + ("/" if path == "index.html" else "/" + path)
@@ -554,7 +554,7 @@ privacy = """
         <h2>Service providers</h2>
         <p>Form submissions may be processed by a third-party form service and email provider. Those providers process the data on our behalf under their own privacy terms.</p>
         <h2>Contact</h2>
-        <p>Questions about this policy can be sent to intake@carriercounsel.com.</p>
+        <p>Questions about this policy can be sent to adam.field@carriercounsel.com.</p>
       </div>
     </section>
 """
@@ -578,7 +578,7 @@ LD = """  <script type="application/ld+json">
     "name": "Carrier Counsel",
     "url": "https://carriercounsel.com/",
     "description": "Transportation law firm recovering unpaid freight charges for motor carriers: broker bankruptcy claims, unpaid shipper collections, and freight fraud.",
-    "email": "intake@carriercounsel.com",
+    "email": "adam.field@carriercounsel.com",
     "areaServed": "US",
     "priceRange": "Contingency fee on most matters",
     "knowsAbout": ["Freight collections", "Broker surety bond claims", "Bankruptcy preference defense", "Double brokering", "Carmack Amendment"]

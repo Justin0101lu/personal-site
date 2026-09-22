@@ -37,7 +37,7 @@ Editing the HTML files directly also works if you don't need the shared shell.
 
 ## Before launch (placeholders to replace)
 
-1. **Email** `intake@carriercounsel.com` appears in `build.py` (and in every page). Replace with the
+1. **Email** `adam.field@carriercounsel.com` appears in `build.py` (and in every page). Replace with the
    real intake address once the domain's mailbox exists. The site deliberately lists no phone number.
 2. **Contact form**: `contact.html` posts to `https://formspree.io/f/YOUR_FORM_ID`. Create a free
    form at formspree.io (or any similar service) and paste the real endpoint. Until then, the form
