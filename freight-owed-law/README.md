@@ -1,6 +1,6 @@
-# Freight Owed Law — freightowed.com
+# Carrier Counsel — carriercounsel.com
 
-Marketing website for **Freight Owed Law**, a transportation law practice that recovers
+Marketing website for **Carrier Counsel**, a transportation law practice that recovers
 unpaid freight charges for motor carriers:
 
 - brokers that went out of business (bond claims, bankruptcy proofs of claim, shipper liability, preference defense)
@@ -12,12 +12,12 @@ The site is plain static HTML/CSS/JS with no build dependencies, so it can be ho
 
 ## Domain
 
-`freightowed.com` was **unregistered** when this site was built (verified against the Verisign RDAP
+`carriercounsel.com` was **unregistered** when this site was built (verified against the Verisign RDAP
 registry). Register it at a low-cost registrar such as Cloudflare Registrar or Porkbun; a `.com`
 runs roughly $10–12 per year at cost-based registrars.
 
 Backup names that were also unregistered at the same time:
-`carrierrecoverylaw.com`, `haulrecoverylaw.com`, `unpaidfreightlaw.com`, `freightclaimlaw.com`, `owedfreight.com`.
+`ladinglaw.com`, `milepostlaw.com`, `interstatecarrierlaw.com`, `carrierrecoverylaw.com`, `carriercounsel.com`.
 
 ## Files
 
@@ -37,8 +37,8 @@ Editing the HTML files directly also works if you don't need the shared shell.
 
 ## Before launch (placeholders to replace)
 
-1. **Phone number** `(555) 012-3456` and email `intake@freightowed.com` appear in `build.py`
-   (and in every page). Replace with real contact details.
+1. **Email** `intake@carriercounsel.com` appears in `build.py` (and in every page). Replace with the
+   real intake address once the domain's mailbox exists. The site deliberately lists no phone number.
 2. **Contact form**: `contact.html` posts to `https://formspree.io/f/YOUR_FORM_ID`. Create a free
    form at formspree.io (or any similar service) and paste the real endpoint. Until then, the form
    falls back to opening the visitor's email client with the details pre-filled.
@@ -51,27 +51,19 @@ Editing the HTML files directly also works if you don't need the shared shell.
    (49 U.S.C. § 14705, the $75,000 BMC-84/85 broker bond, the Carmack Amendment, bankruptcy
    preference rules) are accurate as general background, but specifics vary by jurisdiction and facts.
 
-## Moving this folder into its own repository
+## Repository and hosting
 
-This site was developed inside the `personal-site` repo because the session could not create
-repositories. To give it its own repo (recommended, and required for GitHub Pages to serve it at
-the root of the domain):
+This site lives at https://github.com/Justin0101lu/law. The workflow in
+`.github/workflows/pages.yml` deploys to GitHub Pages on every push to `main`.
 
-```bash
-# 1. Create an empty repo on GitHub named freight-owed-law (no README, no .gitignore).
-
-# 2. From a clone of personal-site, on the branch that contains this folder:
-git subtree split --prefix=freight-owed-law -b freight-owed-law-main
-git push https://github.com/Justin0101lu/freight-owed-law.git freight-owed-law-main:main
-git branch -D freight-owed-law-main
-```
-
-Then in the new repo: **Settings → Pages → Source: GitHub Actions**. The included workflow
-deploys on every push to `main`.
+One-time setup: in the repo, open **Settings → Pages** and set **Source** to **GitHub Actions**.
+The workflow's built-in token cannot create the Pages site itself, so until this is done the deploy
+job fails at the "configure-pages" step. After that, the site is served at
+https://justin0101lu.github.io/law/ until a custom domain is attached.
 
 ## Pointing the domain at GitHub Pages
 
-1. In the new repo, **Settings → Pages → Custom domain**: enter `freightowed.com` and save.
+1. In the repo, **Settings → Pages → Custom domain**: enter `carriercounsel.com` and save.
    GitHub creates a `CNAME` file in the repo.
 2. At your registrar, add DNS records:
    - `A` records for `@` → `185.199.108.153`, `185.199.109.153`, `185.199.110.153`, `185.199.111.153`
