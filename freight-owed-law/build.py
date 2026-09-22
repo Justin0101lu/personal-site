@@ -118,42 +118,6 @@ ICON_CLOCK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
 ICON_SCALE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M4 21h16M3 7h18M6 7l-3 7a3 3 0 0 0 6 0zM18 7l-3 7a3 3 0 0 0 6 0z"/></svg>'
 
 
-def avatar(initials, a, b):
-    """Illustrated avatar: gradient disc with a simple figure silhouette and initials."""
-    return f'''<svg class="avatar" viewBox="0 0 96 96" role="img" aria-label="Illustrated portrait placeholder">
-  <defs><linearGradient id="g{initials}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="{a}"/><stop offset="1" stop-color="{b}"/></linearGradient></defs>
-  <rect width="96" height="96" fill="url(#g{initials})"/>
-  <circle cx="48" cy="38" r="17" fill="rgba(255,255,255,.92)"/>
-  <path d="M16 96c2-22 16-32 32-32s30 10 32 32z" fill="rgba(255,255,255,.92)"/>
-  <text x="48" y="90" text-anchor="middle" font-family="Inter, sans-serif" font-size="11" font-weight="700" fill="#0b2545">{initials}</text>
-</svg>'''
-
-def person(initials, colors, name, role, bar, bio, focus):
-    tags = "".join(f"<li>{t}</li>" for t in focus)
-    return f'''<article class="person">
-            <span class="sample-badge">Sample profile</span>
-            {avatar(initials, *colors)}
-            <span class="role">{role}</span>
-            <h3>{name}</h3>
-            <div class="bar">{bar}</div>
-            <p>{bio}</p>
-            <ul class="focus">{tags}</ul>
-          </article>'''
-
-TEAM = "\n          ".join([
-    person("MA", ("#13315c", "#1d4a85"), "[Managing Attorney]", "Managing attorney",
-           "Bar admissions: [state(s)] &middot; Federal courts: [districts]",
-           "Leads the firm's carrier collection practice. Before founding the firm, spent years in transportation litigation representing motor carriers in freight-charge, bond, and bankruptcy disputes across multiple states. Handles the firm's broker insolvency matters personally.",
-           ["Broker bankruptcy", "Bond claims", "Federal litigation"]),
-    person("LA", ("#0b2545", "#3a6ea5"), "[Litigation Attorney]", "Litigation attorney",
-           "Bar admissions: [state(s)] &middot; Federal courts: [districts]",
-           "Runs the firm's shipper and consignee collection docket: demand letters, suits on unpaid invoices, and post-judgment enforcement. Focuses on accessorial and detention disputes and on holding shippers liable when a broker fails to pay.",
-           ["Shipper collections", "Judgment enforcement", "Detention & accessorials"]),
-    person("BA", ("#1d4a85", "#f2a900"), "[Bankruptcy Attorney]", "Bankruptcy &amp; creditors' rights",
-           "Bar admissions: [state(s)] &middot; Federal courts: [districts]",
-           "Files and monitors carrier proofs of claim in broker and shipper bankruptcies, and defends carriers against trustee preference demands. Also handles freight fraud matters where the money has to be traced through shell companies.",
-           ["Proofs of claim", "Preference defense", "Fraud tracing"]),
-])
 
 # ---------------------------------------------------------------- HOME
 home = f"""
@@ -490,12 +454,6 @@ about = f"""
             <li>Factoring companies and dispatch services pursuing carrier receivables</li>
           </ul>
 
-          <h2>Attorneys</h2>
-          <p>Every matter is handled by a licensed transportation attorney, not a call center. Our lawyers have spent their careers on the carrier side of freight disputes.</p>
-          <div class="notice"><strong>Sample profiles.</strong> The cards below show the layout with illustrated placeholders. Replace the names, portraits, bar admissions, and biographies with the firm's licensed attorneys before launch. State bar rules require accurate identification of each attorney and the jurisdictions in which they are licensed.</div>
-          <div class="team">
-          {TEAM}
-          </div>
         </div>
         <aside class="aside reveal">
           <h3>Quick facts</h3>

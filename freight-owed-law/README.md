@@ -42,8 +42,9 @@ Editing the HTML files directly also works if you don't need the shared shell.
 2. **Contact form**: `contact.html` posts to `https://formspree.io/f/YOUR_FORM_ID`. Create a free
    form at formspree.io (or any similar service) and paste the real endpoint. Until then, the form
    falls back to opening the visitor's email client with the details pre-filled.
-3. **Attorney bios and bar admissions** on `about.html`. Legal advertising rules in every state
-   require the responsible attorney and licensing jurisdictions to be identified.
+3. **Responsible attorney.** The site intentionally has no attorney section, but legal advertising
+   rules in every state still require the responsible attorney and licensing jurisdictions to be
+   identified somewhere on the site (the footer disclaimer is the usual place).
 4. **Privacy policy** on `privacy.html` is a template; have counsel review it.
 5. **Testimonials** on the home page are illustrative placeholders and must be replaced with real,
    consented client statements or removed. Many state bars restrict testimonials in attorney advertising.
@@ -61,14 +62,34 @@ The workflow's built-in token cannot create the Pages site itself, so until this
 job fails at the "configure-pages" step. After that, the site is served at
 https://justin0101lu.github.io/law/ until a custom domain is attached.
 
-## Pointing the domain at GitHub Pages
+## Pointing the domain at GitHub Pages (Cloudflare Registrar)
 
-1. In the repo, **Settings → Pages → Custom domain**: enter `carriercounsel.com` and save.
-   GitHub creates a `CNAME` file in the repo.
-2. At your registrar, add DNS records:
-   - `A` records for `@` → `185.199.108.153`, `185.199.109.153`, `185.199.110.153`, `185.199.111.153`
-   - `CNAME` for `www` → `justin0101lu.github.io`
-3. Tick **Enforce HTTPS** once the certificate is issued (usually within an hour).
+The domain is registered at Cloudflare, so DNS is managed in the Cloudflare dashboard.
+
+**1. Cloudflare → your domain → DNS → Records.** Delete any placeholder records Cloudflare created,
+then add these. Set **Proxy status to "DNS only"** (grey cloud) on every record. GitHub cannot
+issue the HTTPS certificate while Cloudflare's proxy (orange cloud) is in front of it.
+
+| Type  | Name | Content                    | Proxy    |
+| ----- | ---- | -------------------------- | -------- |
+| A     | @    | 185.199.108.153            | DNS only |
+| A     | @    | 185.199.109.153            | DNS only |
+| A     | @    | 185.199.110.153            | DNS only |
+| A     | @    | 185.199.111.153            | DNS only |
+| CNAME | www  | justin0101lu.github.io     | DNS only |
+
+**2. GitHub → repo → Settings → Pages → Custom domain.** Enter `carriercounsel.com` and save.
+Because this site deploys through GitHub Actions, the domain must be set here; a `CNAME` file in
+the repo is ignored for Actions deployments. Wait for the DNS check to turn green (minutes to an
+hour), then tick **Enforce HTTPS**.
+
+**3. Optional but recommended.** GitHub → your profile → Settings → Pages → **Add a domain** and
+verify `carriercounsel.com` with the TXT record it gives you. This stops anyone else from claiming
+the domain on GitHub Pages if the repo is ever deleted.
+
+Afterwards `www.carriercounsel.com` redirects to `carriercounsel.com` automatically. If you later
+turn Cloudflare's proxy on, set **SSL/TLS → Full** first; "Flexible" causes redirect loops with
+GitHub Pages.
 
 ## Local preview
 
