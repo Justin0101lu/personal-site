@@ -29,14 +29,13 @@ export const SKILLS = [
 //        | { type: 'cron', pattern: '0 8 * * 1' }
 //        | { type: 'webhook' }
 //        | { type: 'manual' }
-// steps: ordered list. kinds: 'ai' (agent step with prompt), 'find' (find records), 'create' (create record),
-//        'update' (update record), 'email' (send email), 'code' (serverless function), 'http' (request)
+// steps: ordered list. kinds: 'ai' (AI agent step with a prompt; the agent has tools for records it is allowed to touch),
+//        'http' (HTTP request), 'email' (send email; needs a connected account, otherwise falls back to an EMAIL_DRAFT review)
 export const AUTOMATIONS = [
   { key: 'calcom-demo-booked', name: 'Cal.com demo booked', trigger: { type: 'webhook' },
     description: 'Runs whenever Cal.com reports a new booking. For demo bookings made with a work email it records the demo, links or creates the company, creates the person if new, moves lead status to SQL (never backwards) and assigns the account owner as AE. Personal-email, internal, non-demo and test bookings are ignored. Repeated deliveries never create duplicates.',
     steps: [
-      { kind: 'code', name: 'Validate and normalise booking', code: 'validateBooking' },
-      { kind: 'ai', name: 'Find or create company and person, set lead status', prompt: 'A Cal.com booking arrived: {{trigger.body}}. Ignore it if the attendee email is a personal domain (gmail, yahoo, hotmail, outlook, icloud, proton), an internal address, or the event title/name/notes look like a test. Otherwise: find the company by email domain or create it; find the person by email or create them; if their leadStatus is NEW or MQL set it to SQL, if it is CONVERTED, NURTURE or DISQUALIFIED leave it alone; set the person\'s owner to the company\'s account owner if there is one. Then create a Note on the company titled "Demo booked" with the booking answers. Return a one-line summary.' },
+      { kind: 'ai', name: 'Validate booking, find or create company and person, set lead status', prompt: 'A Cal.com booking arrived: {{trigger.body}}. Ignore it if the attendee email is a personal domain (gmail, yahoo, hotmail, outlook, icloud, proton), an internal address, or the event title/name/notes look like a test. Otherwise: find the company by email domain or create it; find the person by email or create them; if their leadStatus is NEW or MQL set it to SQL, if it is CONVERTED, NURTURE or DISQUALIFIED leave it alone; set the person\'s owner to the company\'s account owner if there is one. Then create a Note on the company titled "Demo booked" with the booking answers. Return a one-line summary.' },
     ] },
   { key: 'post-meeting-follow-up', name: 'Post-meeting follow-up', trigger: { type: 'record', object: 'note', event: 'created' },
     description: 'After a call note lands on a company, draft a follow-up email covering the agreed next steps and put it in For review for the account owner.',
@@ -46,8 +45,7 @@ export const AUTOMATIONS = [
   { key: 'deduplicate-new-people', name: 'Deduplicate new people', trigger: { type: 'record', object: 'person', event: 'created' },
     description: 'Whenever a person is created, look for an existing person with the same email or a close name match at the same company and propose a merge.',
     steps: [
-      { kind: 'find', name: 'Find people with the same email', object: 'person', filterFrom: 'trigger.record.emails.primaryEmail' },
-      { kind: 'ai', name: 'Propose merge if duplicate', prompt: 'New person: {{trigger.record}}. Candidates: {{steps.find.records}}. If a candidate is the same human (same email, or same company and near-identical name), create a Review record of type MERGE with reason explaining which record should win (the older one). Otherwise do nothing.' },
+      { kind: 'ai', name: 'Find duplicates and propose merge', prompt: 'New person: {{trigger.record}}. Search people with the same primary email, and people at the same company with a near-identical name. If one is the same human, create a Review record of type MERGE (objectName person, recordId = the new person id, toValue = the id of the older record that should win) with a one-line reason. Otherwise do nothing.' },
     ] },
   { key: 'first-call-recap', name: 'First-call recap emails', trigger: { type: 'record', object: 'note', event: 'created' },
     description: 'For the first note ever attached to a company, draft a recap that restates their pain points and proposes a concrete next step.',
@@ -82,8 +80,8 @@ export const AUTOMATIONS = [
   { key: 'enrich-new-companies', name: 'Enrich new companies', trigger: { type: 'record', object: 'company', event: 'created' },
     description: 'Fill industry and employees from an enrichment provider when a company is created without them.',
     steps: [
-      { kind: 'http', name: 'Call enrichment provider', url: 'https://api.example-enrichment.com/v1/companies/{{trigger.record.domainName.primaryLinkUrl}}' },
-      { kind: 'ai', name: 'Propose missing fields', prompt: 'Company: {{trigger.record}}. Provider response: {{steps.http.body}}. For each of industry and employees that is empty on the company and present in the response, create a Review of type FIELD_UPDATE.' },
+      { kind: 'http', name: 'Call enrichment provider', url: 'https://api.example-enrichment.com/v1/companies/{{trigger.record.domainName.primaryLinkUrl}}', method: 'GET' },
+      { kind: 'ai', name: 'Propose missing fields', prompt: 'Company: {{trigger.record}}. Provider response: {{steps.http.result}}. For each of industry and employees that is empty on the company and present in the response, create a Review of type FIELD_UPDATE.' },
     ] },
   { key: 'paywall-dropoff', name: 'Product paywall drop-off', trigger: { type: 'webhook' },
     description: 'When a product user hits the paywall and abandons, create a Nurture person and notify the owner if the company has an open opportunity.',
@@ -108,13 +106,13 @@ export const AUTOMATIONS = [
   { key: 'set-qualified-date', name: 'Set qualified date when entering Qualified', trigger: { type: 'record', object: 'opportunity', event: 'updated' },
     description: 'Stamp the qualified date the first time an opportunity enters the Qualified stage.',
     steps: [
-      { kind: 'update-if', name: 'Set qualifiedAt', object: 'opportunity', when: { field: 'stage', equals: 'QUALIFIED' }, set: { qualifiedAt: '{{now}}' }, onlyIfEmpty: 'qualifiedAt' },
+      { kind: 'ai', name: 'Stamp qualifiedAt', prompt: 'Opportunity updated: {{trigger.record}}. If stage is QUALIFIED and qualifiedAt is empty, update the opportunity and set qualifiedAt to the current time. This is the one automation allowed to write directly, because the field is a timestamp with no judgement involved. Otherwise do nothing.', direct: true },
     ] },
   { key: 'weekly-pipeline-digest', name: 'Weekly pipeline digest', trigger: { type: 'cron', pattern: '0 8 * * 1' },
     description: 'Every Monday, summarise stage changes, new opportunities and slipped close dates from the previous week and email the digest to the sales team.',
     steps: [
       { kind: 'ai', name: 'Build digest', prompt: 'Summarise opportunities created or updated in the last 7 days: new deals, stage changes, slipped close dates, and deals with no next step. Return markdown.' },
-      { kind: 'email', name: 'Email the digest', to: '{{workspace.ownerEmail}}', subject: 'Weekly pipeline digest', body: '{{steps.ai.result}}' },
+      { kind: 'email', name: 'Email the digest', subject: 'Weekly pipeline digest', body: '{{steps.ai.result}}' },
     ] },
   { key: 'stale-opportunity-nudge', name: 'Stale opportunity nudge', trigger: { type: 'cron', pattern: '0 9 * * *' },
     description: 'Nudge the owner of any open opportunity with no activity in 14 days and suggest a next step based on the last note.',
@@ -124,19 +122,19 @@ export const AUTOMATIONS = [
   { key: 'apply-approved-review', name: 'Apply approved review', trigger: { type: 'record', object: 'review', event: 'updated' },
     description: 'The "For review" queue. When a person sets a Review to APPROVED, apply it: update the field, send the email draft, or record the merge. Everything the agent proposes flows through here, so nothing changes without a human.',
     steps: [
-      { kind: 'code', name: 'Apply the approved change', code: 'applyReview' },
+      { kind: 'ai', name: 'Apply the approved change', direct: true, prompt: 'Review updated: {{trigger.record}}. Only act if status is APPROVED and result is empty. For FIELD_UPDATE: update the record named by objectName/recordId, setting fieldName to toValue (for SELECT fields use the option value; for dates use ISO). For EMAIL_DRAFT: send the draft to the person\'s primary email with the title as subject if email sending is available, otherwise create a Task titled "Send: <title>" assigned to the workspace owner containing the draft. For SLACK_DRAFT: create a Task titled "Post to Slack: <title>" containing the draft. For MERGE: create a Task titled "Merge duplicates: <title>" with both record ids. Then set the Review status to APPLIED and result to a one-line summary. If anything fails, set status FAILED and put the error in result.' },
     ] },
   { key: 'sync-stage-to-support', name: 'Sync opportunity stage to support desk', trigger: { type: 'webhook' },
     description: 'When the support desk reports a new ticket for a company with an open opportunity, mirror the current opportunity stage into the ticket so support can prioritise deals in negotiation.',
     steps: [
-      { kind: 'ai', name: 'Look up open opportunity', prompt: 'Support ticket: {{trigger.body}}. Find the company by domain and its open opportunity. Return JSON {ticketId, stage}.' },
-      { kind: 'http', name: 'Update ticket', url: 'https://api.example-support.com/tickets/{{steps.ai.ticketId}}', method: 'PATCH', body: '{"custom_fields":{"crm_stage":"{{steps.ai.stage}}"}}' },
+      { kind: 'ai', name: 'Look up open opportunity', prompt: 'Support ticket: {{trigger.body}}. Find the company by domain and its open opportunity. Return only JSON {"ticketId": "...", "stage": "..."}.' },
+      { kind: 'http', name: 'Update ticket', url: 'https://api.example-support.com/tickets/{{steps.ai.result.ticketId}}', method: 'PATCH', body: { custom_fields: { crm_stage: '{{steps.ai.result.stage}}' } } },
     ] },
   { key: 'sync-plan-to-support', name: 'Sync plan tier to support desk on new issue', trigger: { type: 'webhook' },
     description: 'Tag new support issues with the company\'s plan tier so enterprise customers get routed to the priority queue.',
     steps: [
-      { kind: 'ai', name: 'Look up plan tier', prompt: 'Support issue: {{trigger.body}}. Find the company by domain. Return JSON {issueId, tier} where tier is derived from annualRecurringRevenue (>= 50000 enterprise, >= 10000 team, else starter).' },
-      { kind: 'http', name: 'Label issue', url: 'https://api.example-support.com/issues/{{steps.ai.issueId}}/labels', method: 'POST', body: '{"label":"plan:{{steps.ai.tier}}"}' },
+      { kind: 'ai', name: 'Look up plan tier', prompt: 'Support issue: {{trigger.body}}. Find the company by domain. Return only JSON {"issueId": "...", "tier": "..."} where tier is derived from annualRecurringRevenue (>= 50000 enterprise, >= 10000 team, else starter).' },
+      { kind: 'http', name: 'Label issue', url: 'https://api.example-support.com/issues/{{steps.ai.result.issueId}}/labels', method: 'POST', body: { label: 'plan:{{steps.ai.result.tier}}' } },
     ] },
 ];
 

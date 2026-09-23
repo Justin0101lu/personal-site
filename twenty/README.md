@@ -1,67 +1,87 @@
 # Lightfield-style CRM on Twenty
 
-This folder runs the real, open-source [Twenty CRM](https://github.com/twentyhq/twenty)
-(AGPL, v2.9.0) and layers Lightfield's five primitives on top of it **without forking Twenty**.
-Everything is done through Twenty's own extension points: custom objects and fields, workflows,
-AI agents, roles and permissions, and the REST/GraphQL APIs.
+This folder runs the real, open-source [Twenty CRM](https://github.com/twentyhq/twenty) (AGPL, pinned to
+**v2.9.0**) and layers Lightfield's five primitives on top of it **without forking Twenty**. Everything goes through
+Twenty's own extension points: custom objects and fields, workflows, AI agents, roles and permissions, and the
+REST, GraphQL and MCP APIs. The provisioning script was run and verified against a local Twenty v2.9.0.
 
 ## The five primitives, mapped to Twenty
 
 | Lightfield primitive | How it is built on Twenty |
 |---|---|
-| **Skills** – reusable playbooks you run against your data | A `Skill` custom object holding the instructions, plus one *manual-trigger workflow per skill* whose single step is an **AI agent step** that runs those instructions. Run from any record's "Run workflow" menu or from the agent chat. Customize by editing the Skill record and re-provisioning. |
-| **Knowledge** – company facts and rules the agent grounds in | A `Knowledge` custom object (title, category, body, optional company link). The workspace agent's system prompt tells it to read Knowledge before drafting, and every AI step's prompt references it. |
-| **Automations** – AI steps built with you in chat | Twenty **workflows**: a trigger (record created/updated, cron, webhook, manual) plus steps (AI agent, find records, create/update record, send email, HTTP request, code). Each AI step is prompted to load the full customer context (company, people, opportunities, notes), not just the trigger payload. Building one in chat is Twenty's own "Ask AI" agent with the `WORKFLOWS` permission, seeded with the Lightfield three-question playbook (what should happen, when it runs, what it can touch). |
-| **Run logs + "For review"** | Run logs are Twenty's built-in **Workflow Runs** (per-step inputs, outputs, errors). "For review" is a `Review` custom object: every automation that wants to change a record or send something creates a `Review` (`FIELD_UPDATE`, `EMAIL_DRAFT`, `SLACK_DRAFT`, `MERGE`) instead of acting. The **Apply approved review** workflow fires when a person moves a Review to `APPROVED` and applies it. Runs go to completion; humans review after. |
-| **Permissions** | Twenty **roles**. A dedicated `Lightfield Agent` role gives the workspace agent and every workflow only the object permissions and permission flags they need (read all objects, write `Review`/`Knowledge`/`Task`/`Note`, no destructive access). Workflows that need more (writing opportunities, sending email) are called out in `provision/definitions/content.mjs` and you grant those role permissions explicitly before activating them. |
+| **Skills**: reusable playbooks you run against your data | A `Skill` object holds each playbook's instructions. Each skill is backed by a **manual-trigger workflow** ("Skill: Find lookalikes", …) whose one step is an **AI agent step** running those instructions with full record access. Run them from the workflow menu on a record, or ask the assistant. Customize by editing the Skill record and re-running `provision.mjs --only=skills --force-workflows`. |
+| **Knowledge**: company facts and rules the agent grounds in | A `Knowledge` object (category, body, optional company link). The assistant's system prompt says to read Knowledge before drafting or proposing, and the seeded "Rules for the agent" record carries the guardrails (never move lead status backwards, never write records directly, ignore test bookings…). |
+| **Automations**: AI steps built with you in chat | Twenty **workflows**: a trigger (record created/updated, cron, inbound webhook, manual) plus steps (AI agent, HTTP request, send email). Every AI step is prompted to load the whole customer context (company, people, opportunities, notes), not just the trigger payload. Building one in chat is Twenty's own "Ask AI" with the seeded assistant, whose prompt carries Lightfield's three-question playbook: what should happen, when it runs, what it can touch. |
+| **Run logs + "For review"** | Run logs are Twenty's built-in **Workflow Runs** (per-step output and errors; verified by firing a real `person.created` event). "For review" is the `Review` object: automations create a Review (`FIELD_UPDATE`, `EMAIL_DRAFT`, `SLACK_DRAFT`, `MERGE`, `NEW_RECORD`) instead of acting. A person moves it to `APPROVED` on the **Review board** kanban, and the **Apply approved review** workflow (trigger `review.updated`) applies it and sets `APPLIED` or `FAILED`. Runs go to completion; humans review after. |
+| **Permissions** | Twenty **roles**. The `Lightfield Agent` role can read every object but write only `review`, `knowledge`, `skill`, `note` and `task`, with the `AI` and `HTTP_REQUEST_TOOL` flags. The assistant and every AI step run under it. Pass `--grant-writes` to also let it write people, companies and opportunities, and `--grant-email` for the send-email tool. Widening is an explicit, visible step, like Lightfield's permission prompt before activation. |
 
 ## Run it
 
-Requirements: Docker with Compose, and an AI provider key for agent steps (Anthropic or OpenAI).
+Requirements: Docker with Compose, and an AI provider key (Anthropic or OpenAI) for the agent and AI steps.
+Without a key everything provisions fine, but AI steps fail at run time with "No AI models are available".
 
 ```bash
 cd twenty
-cp .env.example .env            # set ENCRYPTION_KEY (openssl rand -base64 32) and an AI key
+cp .env.example .env              # set ENCRYPTION_KEY (openssl rand -base64 32) and ANTHROPIC_API_KEY or OPENAI_API_KEY
 docker compose up -d
-open http://localhost:3000      # create your workspace (first sign-up becomes admin)
+open http://localhost:3000        # sign up; the first user becomes the workspace admin
 ```
 
-Then create an API key in Twenty (Settings → API & Webhooks → API keys) and provision the layer:
+Then provision the layer with the account you just created:
 
 ```bash
 cd provision
-TWENTY_URL=http://localhost:3000 TWENTY_API_KEY=... node provision.mjs
+TWENTY_URL=http://localhost:3000 TWENTY_EMAIL=you@example.com TWENTY_PASSWORD='…' node provision.mjs
+TWENTY_URL=http://localhost:3000 TWENTY_EMAIL=you@example.com TWENTY_PASSWORD='…' node verify.mjs
 ```
 
-The script is idempotent: it creates what is missing, updates what already exists, and prints what it did.
-Use `node provision.mjs --only=objects,knowledge` to run part of it and `node verify.mjs` to check the result.
+Why email and password rather than an API key: Twenty's workflow-builder mutations require a user session and
+reject API keys. The script therefore signs in, and creates and activates workflows through Twenty's MCP endpoint
+(`create_complete_workflow`). `TWENTY_API_KEY` is accepted too and works for objects, fields, roles, the agent and
+records, but the MCP route still needs a key whose role has the `WORKFLOWS` flag.
 
-## What gets provisioned
+The script is **idempotent**: it creates what is missing and skips what exists, so re-running is safe.
+Useful flags: `--only=objects,fields,role,agent,skills,workflows,records,views`, `--force-workflows`
+(recreate workflows from `definitions/content.mjs`), `--grant-writes`, `--grant-email`, `--dry-run`, `--verbose`.
+Set `TWENTY_CONNECTED_ACCOUNT_ID` to make the weekly digest send real email; otherwise it lands in For review.
 
-- **Objects**: `Knowledge`, `Skill`, `Review`, plus extra fields on `company` (segment, source, billingCustomerId),
-  `person` (leadStatus, source) and `opportunity` (nextStep, qualifiedAt).
-- **Role** `Lightfield Agent` and the workspace **agent** with the Lightfield system prompt.
-- **Workflows**: the 20 automations in `definitions/content.mjs` (Cal.com demo booked, post-meeting follow-up,
-  dedupe, recap emails, account segmentation, LinkedIn leads, research, enrichment, billing sync, Slack on Won,
-  stale-deal nudges, weekly digest, "Apply approved review", …) and one manual workflow per Skill.
-- **Sample data**: 12 companies, 20 people, 11 opportunities, 3 call notes, 7 pending reviews and the Knowledge base,
-  so the "For review" view is populated on first open.
+## What gets provisioned (verified output)
+
+- **Objects**: `Knowledge`, `Skill`, `Review`, plus fields on `company` (segment, source, billingCustomerId),
+  `person` (leadStatus, source), `opportunity` (nextStep, qualifiedAt) and the extra opportunity stages
+  Discovery, Qualified, Negotiation, Won, Lost (appended to Twenty's defaults so existing records stay valid).
+- **Role** `Lightfield Agent` and the **agent** `lightfieldAssistant` with the Lightfield system prompt.
+- **27 active workflows**: the 20 automations in `definitions/content.mjs` (Cal.com demo booked, post-meeting
+  follow-up, dedupe, first-call and follow-up recaps, account segmentation, LinkedIn form leads, account research,
+  enrichment, billing sync, Slack on Won, qualified-date stamping, weekly digest, stale-deal nudge, support-desk
+  syncs, "Apply approved review") and 7 skill workflows.
+- **Sample data**: 12 companies, 20 people, 11 opportunities, 3 call notes, 6 Knowledge records, 7 Skill records,
+  7 pending Reviews, and a **Review board** kanban view grouped by status.
+
+`verify.mjs` checks all of the above and exits non-zero if anything is missing.
 
 ## Layout
 
 ```
 twenty/
-  docker-compose.yml        self-hosted Twenty, pinned to v2.9.0
+  docker-compose.yml          self-hosted Twenty, pinned to v2.9.0
   .env.example
   provision/
-    provision.mjs           creates objects, fields, role, agent, workflows, records (idempotent)
-    verify.mjs              checks the workspace after provisioning
-    twenty-client.mjs       tiny REST + GraphQL client using an API key
-    definitions/content.mjs the Lightfield content: knowledge, skills, automations, seed records
+    provision.mjs             creates objects, fields, role, agent, workflows, records, views (idempotent)
+    verify.mjs                checks the workspace after provisioning
+    login.mjs                 email + password → workspace access token
+    twenty-client.mjs         tiny REST + GraphQL client
+    definitions/content.mjs   the Lightfield content: knowledge, skills, 20 automations, seed records
 ```
+
+## Notes from building against v2.9.0
+
+- Field name `type` is reserved on custom objects, so the review type field is `reviewType`.
+- Note and task links use morph relations: `noteTargets` takes `targetCompanyId` / `targetPersonId`, not `companyId`.
+- Database-event triggers expose the record as `{{trigger.object.<field>}}`; webhook triggers expose the body as `{{trigger}}`.
+- Object permissions cannot be set on system objects (`noteTarget`, `taskTarget`); the role skips them.
 
 ## Prototype UI
 
-`../crm/` is a standalone static prototype of the Lightfield UI (review queue, chat-built automations,
-permission grants, sequences, settings). It is useful as a design reference for what the Twenty workspace
-should feel like, but it is not connected to Twenty.
+`../crm/` is a standalone static prototype of the Lightfield UI (review queue, chat-built automations with
+permission grants, run logs, sequences, settings). It is a design reference for the workspace, not connected to Twenty.
