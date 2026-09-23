@@ -193,6 +193,13 @@ if (want('agent')) {
   }
 }
 agent = agent || (await findAgent());
+// Workspace-wide instructions are appended to every AI system prompt in Twenty, so the Lightfield rules apply
+// to the assistant, every custom agent and every AI workflow step.
+const WORKSPACE_INSTRUCTIONS = `Lightfield rules for ${WORKSPACE.name}: read the Knowledge records before drafting or proposing anything. Load the full customer context (company, people, opportunities, notes), not just the triggering record. Never change customer records or send messages directly: create a Review record (object "review", status PENDING, reviewType FIELD_UPDATE / EMAIL_DRAFT / SLACK_DRAFT / MERGE / NEW_RECORD) for a person to approve. Lead status never moves backwards. Ignore personal-email, internal and test-looking bookings. Keep emails under 150 words.`;
+if (want('agent') && !DRY) {
+  try { await api.metadata(`mutation($data: UpdateWorkspaceInput!) { updateWorkspace(data: $data) { id } }`, { data: { aiAdditionalInstructions: WORKSPACE_INSTRUCTIONS } }); log('update', 'workspace AI instructions set'); }
+  catch (e) { warn(`workspace AI instructions: ${e.message.split('\n')[0]}`); }
+}
 
 // ---------- workflow builders ----------
 const step = (type, name, input, extra) => ({ id: randomUUID(), name, type, valid: true, settings: { input, outputSchema: {}, errorHandlingOptions: { retryOnFailure: { value: false }, continueOnFailure: { value: false } } }, nextStepIds: [], ...(extra || {}) });
@@ -275,6 +282,20 @@ if (want('skills')) {
     const wf = await ensureWorkflow(def, buildTrigger(def, steps[0].id), steps, existing);
     const { record, created: isNew } = DRY ? { record: {}, created: true } : await api.upsert('skills', 'key', sk.key, { name: sk.name, key: sk.key, description: sk.description, instructions: sk.instructions, enabled: true, workflowId: wf.id || '' });
     (isNew ? created : skipped)(`skill record "${sk.name}"${isNew ? '' : ' (updated)'}`);
+  }
+  // Twenty also has native AI skills (markdown playbooks the assistant loads on demand). Register each one there too,
+  // so "run find lookalikes" works in the chat without the workflow.
+  if (!DRY) {
+    const native = (await api.metadata('{ skills { id name } }')).skills;
+    for (const sk of SKILLS) {
+      const name = sk.key.replace(/-([a-z])/g, (m, c) => c.toUpperCase());
+      const content = `# ${sk.name}\n\n${sk.description}\n\n## Instructions\n\n${sk.instructions}\n\n## Output rules\n\n- Never change customer records directly: create Review records (object \"review\", status PENDING) and let a person approve them.\n- Read the Knowledge records first (ICP, pricing, lead status rules, objection handling).\n- Load the full customer context: company, people, opportunities, notes.`;
+      const found = native.find((x) => x.name === name);
+      try {
+        if (found) { await api.metadata(`mutation($input: UpdateSkillInput!) { updateSkill(input: $input) { id } }`, { input: { id: found.id, label: sk.name, description: sk.description, content, isActive: true } }); log('update', `native skill "${sk.name}"`); }
+        else { await api.metadata(`mutation($input: CreateSkillInput!) { createSkill(input: $input) { id } }`, { input: { name, label: sk.name, icon: 'IconCube', description: sk.description, content } }); created(`native skill "${sk.name}"`); }
+      } catch (e) { warn(`native skill "${sk.name}": ${e.message.split('\n')[0]}`); }
+    }
   }
 }
 
@@ -362,6 +383,22 @@ if (want('views')) {
         created('view "Review board" (kanban by status)');
       }
     } catch (e) { warn(`views: ${e.message.split('\n')[0]}`); }
+  }
+  // Show the useful columns on each custom object's default table view.
+  const COLUMNS = { review: ['reviewType', 'status', 'reason', 'objectName', 'fieldName', 'toValue', 'source'], skill: ['description', 'enabled', 'runs', 'workflowId'], knowledge: ['category', 'body', 'company'] };
+  for (const [objectName, cols] of Object.entries(COLUMNS)) {
+    const obj = OBJ[objectName];
+    if (!obj || DRY) continue;
+    try {
+      const views = (await api.metadata(`query($id: String!) { getViews(objectMetadataId: $id) { id name type key } }`, { id: obj.id })).getViews;
+      const index = views.find((v) => v.key === 'INDEX') || views.find((v) => v.type === 'TABLE');
+      if (!index) continue;
+      const have = (await api.metadata(`query($id: String!) { getViewFields(viewId: $id) { id fieldMetadataId isVisible } }`, { id: index.id })).getViewFields;
+      const inputs = cols.map((c, i) => ({ c, f: fieldOf(objectName, c) })).filter(({ f }) => f && !have.some((h) => h.fieldMetadataId === f.id)).map(({ f }, i) => ({ viewId: index.id, fieldMetadataId: f.id, isVisible: true, size: 180, position: have.length + i }));
+      if (!inputs.length) { skipped(`columns on ${objectName} view`); continue; }
+      await api.metadata(`mutation($inputs: [CreateViewFieldInput!]!) { createManyViewFields(inputs: $inputs) { id } }`, { inputs });
+      created(`${inputs.length} columns on "${index.name}" view of ${objectName}`);
+    } catch (e) { warn(`view columns for ${objectName}: ${e.message.split('\n')[0]}`); }
   }
 }
 

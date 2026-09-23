@@ -26,6 +26,8 @@ const agents = (await api.metadata('{ findManyAgents { id name roleId } }')).fin
 const agent = agents.find((a) => a.name === 'lightfieldAssistant');
 check('agent lightfieldAssistant', !!agent, agent ? (agent.roleId ? 'role assigned' : 'no role') : 'missing');
 
+const nativeSkills = (await api.metadata('{ skills { id name isActive } }').catch(() => ({ skills: [] }))).skills;
+check('native AI skills', SKILLS.every((k) => nativeSkills.some((x) => x.name === k.key.replace(/-([a-z])/g, (m, c) => c.toUpperCase()))), `${nativeSkills.filter((x) => x.isActive).length} active`);
 const workflows = await api.list('workflows', { limit: 200 });
 const versions = await api.list('workflowVersions', { limit: 500 });
 const active = (name) => { const w = workflows.find((x) => x.name === name); return w && versions.some((v) => v.workflowId === w.id && v.status === 'ACTIVE'); };

@@ -1,10 +1,16 @@
 # personal-site
 
-Justin Lu's personal site, plus a Lightfield-style CRM demo under `crm/`.
+Justin Lu's personal site, plus a Lightfield-style CRM built two ways:
 
-## CRM (`crm/`)
+- **`twenty/`**: the real thing, on top of the open-source [Twenty CRM](https://github.com/twentyhq/twenty) (v2.9.0).
+  A compose file to self-host Twenty and a provisioning script that adds Lightfield's five primitives through Twenty's
+  APIs: Skills, Knowledge, chat-built Automations (workflows), run logs with a "For review" queue, and Permissions
+  (roles). Verified against a running Twenty. Start with [`twenty/README.md`](twenty/README.md).
+- **`crm/`**: a standalone static prototype of the Lightfield UI, useful as a design reference.
 
-A self-contained, AI-native CRM in the style of Lightfield and Twenty: vanilla
+## Prototype UI (`crm/`)
+
+A self-contained, AI-native CRM prototype in the style of Lightfield and Twenty: vanilla
 HTML, CSS and JavaScript with no build step. Open `crm/index.html` in a browser
 (or serve the repo with any static server) and it boots with a sample workspace.
 Everything you change is stored in `localStorage`; use Settings to export a JSON
